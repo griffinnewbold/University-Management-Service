@@ -119,13 +119,14 @@ def index():
 	#
 	# example of a database query
 	#
+	'''
 	select_query = "SELECT name from test"
 	cursor = g.conn.execute(text(select_query))
 	names = []
 	for result in cursor:
 		names.append(result[0])
 	cursor.close()
-
+	'''
 	#
 	# Flask uses Jinja templates, which is an extension to HTML where you can
 	# pass data to a template and dynamically generate HTML based on the data
@@ -152,14 +153,14 @@ def index():
 	#     <div>{{n}}</div>
 	#     {% endfor %}
 	#
-	context = dict(data = names)
+	#context = dict(data = names)
 
 
 	#
 	# render_template looks in the templates/ folder for files.
 	# for example, the below file reads template/index.html
 	#
-	return render_template("index.html", **context)
+	return render_template("index.html")
 
 #
 # This is an example of a different path.  You can see it at:
@@ -169,9 +170,28 @@ def index():
 # Notice that the function name is another() rather than index()
 # The functions for each app.route need to have different names
 #
-@app.route('/another')
-def another():
-	return render_template("another.html")
+@app.route('/student', methods=['POST', 'GET'])
+def student():
+	return render_template("student.html")
+
+@app.route('/admin', methods=['POST', 'GET'])
+def admin():
+	return render_template("admin.html")
+
+
+@app.route('/instructor', methods=['POST', 'GET'])
+def instructor():
+	return render_template("instructor.html")
+
+
+@app.route('/directory', methods=['POST', 'GET'])
+def directory():
+	return render_template("directory.html")
+
+@app.route('/advisor', methods=['POST', 'GET'])
+def advisor():
+	return render_template("advisor.html")
+
 
 
 # Example of adding new data to the database
@@ -179,19 +199,43 @@ def another():
 def add():
 	# accessing form inputs from user
 	name = request.form['name']
+	params = {}
+	params["new_name"] = name
+	names = params["new_name"]
+
+	#error checking for empty login field
+	if(len(names) == 0):
+		return redirect('/')
 	
+	#sql query to see if we have a valid user
+	select_query = "SELECT uni FROM Person"
+	cursor = g.conn.execute(text(select_query))
+	res = []
+	for result in cursor:
+		res.append(result[0])
+	cursor.close()
+
+	if(names not in res and names != "admin"):
+		context = dict(data = "Invalid UNI, Please Try Again!")
+		return render_template("index.html", **context)
+	
+	if(names == 'admin'):
+		return redirect('/admin')
+	elif(names[0] == 'a'):
+		return redirect('/advisor')
+	elif(names[0] == 's'):
+		return redirect('/student')
+	elif(names[0] == 'i'):
+		return redirect('/instructor')
+	return redirect('/')
+	
+	'''
 	# passing params in for each variable into query
 	params = {}
 	params["new_name"] = name
 	g.conn.execute(text('INSERT INTO test(name) VALUES (:new_name)'), params)
 	g.conn.commit()
-	return redirect('/')
-
-
-@app.route('/login')
-def login():
-	abort(401)
-	this_is_never_executed()
+	'''
 
 
 if __name__ == "__main__":
@@ -214,9 +258,9 @@ if __name__ == "__main__":
 			python server.py --help
 
 		"""
-
 		HOST, PORT = host, port
 		print("running on %s:%d" % (HOST, PORT))
 		app.run(host=HOST, port=PORT, debug=debug, threaded=threaded)
 
 run()
+
