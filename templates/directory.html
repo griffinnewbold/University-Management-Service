@@ -1,1 +1,11 @@
 hello, directory!
+
+<form method="POST" action="search_db">
+    <p>Search for a Person in the Directory (search by their name or uni): <input type="text" name="name"> <input type="submit" value="Search"></p>
+    </form>
+
+    {% for n in data %}
+	<div>{{n}}</div>
+	{% endfor %}
+    
+<p><a href="homepage">Go to homepage</a></p>

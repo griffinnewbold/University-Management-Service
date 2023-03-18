@@ -101,6 +101,7 @@ def teardown_request(exception):
 # see for decorators: http://simeonfranklin.com/blog/2012/jul/1/python-decorators-in-12-steps/
 #
 @app.route('/')
+@app.route('/homepage')
 def index():
 	"""
 	request is a special object that Flask provides to access web request information:
@@ -192,7 +193,29 @@ def directory():
 def advisor():
 	return render_template("advisor.html")
 
+@app.route('/search_db', methods=['POST'])
+def search_db():
+    #gets entry and forms SQL query
+    name = request.form['name']
+    query = text("SELECT * FROM Person p where p.name ILIKE :search_term or p.uni ILIKE :search_term")
+    search_condition= '%'+name+'%'
+    query = query.bindparams(search_term=search_condition)
 
+    #executes the query and parses the results
+    cursor = g.conn.execute(query)
+    names = []
+    for result in cursor:	
+        if(result[0] != 'None'):
+             names.append(result)
+    cursor.close()
+
+    #updates the page contents then refreshes
+    if(len(names) != 0):
+       context = dict(data = names)
+    else:
+       result = ["There is no entry in our records relating to your search term, please check your search then try again"]
+       context = dict(data = result)
+    return render_template("directory.html", **context)
 
 # Example of adding new data to the database
 @app.route('/add', methods=['POST'])
