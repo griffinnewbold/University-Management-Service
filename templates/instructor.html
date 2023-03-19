@@ -1,1 +1,45 @@
-hello, instructor!
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Instructor Dashboard</title>
+    </head>
+    <body>
+        <div>
+            <h1>Welcome to your Dashboard {% for result in data %}{{ result['name'] }}{% endfor %}</h1>
+            <h2>Contact Information</h1>
+            {% for result in data %}
+            <h4>Name: {{ result['name'] }}</h4>
+            <h4>UNI: {{ result['uni'] }}</h4>
+            <h4>Email: {{ result['email'] }}</h4>
+            <h4>Phone Number: {{ result['phone'] }}</h4>
+            <h4>Address on File: {{result['addr']}}</h4>
+            {% endfor %}
+        </div>
+        <br>
+        <div>
+            <h2>Career Information</h2>
+            {% for result in data %}
+            <h4>Current Salary: ${{ result['salary'] }}</h4>
+            <h4>Years of Experience: {{ result['years_of_exp'] }}</h4>
+            <h4>Current Department Code: {{ result['dept_code'] }}</h4>
+            <h4>Alma Mater: {{ result['alma_mater'] }}</h4>
+            <h4>Research Experience Overview: {{ result['research_exp'] }}</h4>
+            {% for paper in result['papers_written']%}
+            <h4>Papers Written: {{ paper }}</h4>
+            {% endfor %}
+            {% endfor %}
+        </div>
+        <br>
+        <div>
+            <h2>Academic Information</h2>
+            {% for result in data %}
+            <h3>Courses Taught in the Past</h3>
+            {% for entry in result['courses_taught'] %}
+            <h4>     {{ entry}}</h4>
+            {% endfor %}
+            {% endfor %}
+        </div>
+        <br>
+        <p><a href="homepage">Log Out</a></p>
+    </body>
+</html>

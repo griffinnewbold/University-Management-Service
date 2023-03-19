@@ -198,7 +198,19 @@ def admin():
 
 @app.route('/instructor', methods=['POST', 'GET'])
 def instructor():
-	return render_template("instructor.html")
+    uni = session.pop('textbox', None)
+    query = text("SELECT * From Person p, Employee e, Instructor i, \"belongs to\" b Where p.uni = :user_uni and e.uni = :user_uni and i.uni = :user_uni and b.uni = :user_uni").bindparams(user_uni=uni)
+    cursor = g.conn.execute(query)
+    names = []
+    for result in cursor:
+	    if(result[0] != 'None'):
+		    names.append(dict(uni=result[0], name = result[1], email = result[2],
+		 phone=result[3], addr=result[4], years_of_exp=result[5],
+		     salary=result[6], alma_mater=result[7], courses_taught=result[9],
+		     papers_written = result[10], research_exp = result[12], dept_code = result[13]))
+    cursor.close()
+    context = dict(data = names)
+    return render_template("instructor.html", **context)
 
 
 @app.route('/directory', methods=['POST', 'GET'])
