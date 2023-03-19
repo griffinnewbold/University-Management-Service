@@ -1,1 +1,34 @@
-hello, student!
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Dashboard</title>
+    </head>
+    <body>
+        <h1>Welcome to your dashboard {% for result in data %}{{ result['name'] }}{% endfor %}</h1>
+        <h2>Contact Information</h1>
+        {% for result in data %}
+        <h4>Name: {{ result['name'] }}</h4>
+        <h4>UNI: {{ result['uni'] }}</h4>
+        <h4>Email: {{ result['email'] }}</h4>
+        <h4>Phone Number: {{ result['phone'] }}</h4>
+        <h4>Address on File: {{result['addr']}}</h4>
+        {% endfor %}
+        <br>
+        <h2>Academic Information</h2>
+        {% for result in data %}
+        <h4>Current Department Code: {{ result['department'] }}</h4>
+        <h4>Current Advisor UNI: {{ result['advisor'] }}</h4>
+        <br>
+        <h4>Graduation Year: {{ result['grad_date'] }}</h4>
+        <h4>Credits Attempted: {{ result['credits_att'] }}</h4>
+        <h4>Credits Earned: {{ result['credits_ern'] }}</h4>
+        {% endfor %}
+        <br>
+        <h2>Courses Completed</h2>
+        {% for result in data %}
+        {% for course_pair in result['courses_taken']%}
+        <h4>Course Name: {{ course_pair[0] }} | Course Grade: {{ course_pair[1] }}</h4>
+        {% endfor %}
+        {% endfor %}
+    </body>
+</html>

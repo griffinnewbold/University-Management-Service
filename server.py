@@ -12,10 +12,11 @@ import os
   # accessible as a variable in index.html:
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
-from flask import Flask, request, render_template, g, redirect, Response
+from flask import Flask, request, render_template, g, redirect, Response, session
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
+app.secret_key = 'databaseproject'
 
 
 #
@@ -173,7 +174,22 @@ def index():
 #
 @app.route('/student', methods=['POST', 'GET'])
 def student():
-	return render_template("student.html")
+    uni = session.pop('textbox', None)
+    query = text("SELECT * From Person p JOIN Student s on p.uni = s.uni JOIN takes on p.uni=takes.uni JOIN \"advised by\" a on p.uni = a.uni_s JOIN \"belongs to\" b on p.uni = b.uni Where p.uni = :user_uni")
+    query = query.bindparams(user_uni=uni)
+    cursor = g.conn.execute(query)
+    names = []
+    for result in cursor:
+	    if(result[0] != 'None'):
+		    names.append(dict(uni=result[0], name = result[1], 
+		 email=result[2], phone=result[3], addr=result[4],
+		     credits_att=result[5], credits_ern=result[6], 
+			 grad_date = result[7], courses_taken=result[8],
+			 advisor=result[14], department = result[15]))
+	
+    cursor.close()
+    context = dict(data = names)
+    return render_template("student.html", **context)
 
 @app.route('/admin', methods=['POST', 'GET'])
 def admin():
@@ -220,70 +236,71 @@ def search_db():
 # Example of adding new data to the database
 @app.route('/add', methods=['POST'])
 def add():
-	# accessing form inputs from user
-	name = request.form['name']
-	params = {}
-	params["new_name"] = name
-	names = params["new_name"]
+    # accessing form inputs from user
+    name = request.form['name']
+    session['textbox'] = name
+    params = {}
+    params["new_name"] = name
+    names = params["new_name"]
 
-	#error checking for empty login field
-	if(len(names) == 0):
-		return redirect('/')
+    #error checking for empty login field
+    if(len(names) == 0):
+	    return redirect('/')
 	
-	#sql query to see if we have a valid user
-	select_query = "SELECT uni FROM Person"
-	cursor = g.conn.execute(text(select_query))
-	res = []
-	for result in cursor:
-		res.append(result[0])
-	cursor.close()
+    #sql query to see if we have a valid user
+    select_query = "SELECT uni FROM Person"
+    cursor = g.conn.execute(text(select_query))
+    res = []
+    for result in cursor:
+	    res.append(result[0])
+    cursor.close()
 
-	if(names not in res and names != "admin"):
-		context = dict(data = "Invalid UNI, Please Try Again!")
-		return render_template("index.html", **context)
+    if(names not in res and names != "admin"):
+	    context = dict(data = "Invalid UNI, Please Try Again!")
+	    return render_template("index.html", **context)
 	
-	if(names == 'admin'):
-		return redirect('/admin')
-	elif(names[0] == 'a'):
-		return redirect('/advisor')
-	elif(names[0] == 's'):
-		return redirect('/student')
-	elif(names[0] == 'i'):
-		return redirect('/instructor')
-	return redirect('/')
+    if(names == 'admin'):
+	    return redirect('/admin')
+    elif(names[0] == 'a'):
+	    return redirect('/advisor')
+    elif(names[0] == 's'):
+	    return redirect('/student')
+    elif(names[0] == 'i'):
+	    return redirect('/instructor')
+    return redirect('/')
 	
-	'''
-	# passing params in for each variable into query
-	params = {}
-	params["new_name"] = name
-	g.conn.execute(text('INSERT INTO test(name) VALUES (:new_name)'), params)
-	g.conn.commit()
-	'''
+    '''
+    # passing params in for each variable into query
+    params = {}
+    params["new_name"] = name
+    g.conn.execute(text('INSERT INTO test(name) VALUES (:new_name)'), params)
+    g.conn.commit()
+    '''
 
 
 if __name__ == "__main__":
-	import click
+    import click
 
-	@click.command()
-	@click.option('--debug', is_flag=True)
-	@click.option('--threaded', is_flag=True)
-	@click.argument('HOST', default='0.0.0.0')
-	@click.argument('PORT', default=8111, type=int)
-	def run(debug, threaded, host, port):
-		"""
-		This function handles command line parameters.
-		Run the server using:
+    @click.command()
+    @click.option('--debug', is_flag=True)
+    @click.option('--threaded', is_flag=True)
+    @click.argument('HOST', default='0.0.0.0')
+    @click.argument('PORT', default=8111, type=int)
+    def run(debug, threaded, host, port):
+	    """
+	    This function handles command line parameters.
+	    Run the server using:
 
-			python server.py
+		    python server.py
 
-		Show the help text using:
+	    Show the help text using:
 
-			python server.py --help
+		    python server.py --help
 
-		"""
-		HOST, PORT = host, port
-		print("running on %s:%d" % (HOST, PORT))
-		app.run(host=HOST, port=PORT, debug=debug, threaded=threaded)
+	    """
+	    HOST, PORT = host, port
+	    print("running on %s:%d" % (HOST, PORT))
+	    app.run(host=HOST, port=PORT, debug=debug, threaded=threaded)
 
 run()
 
