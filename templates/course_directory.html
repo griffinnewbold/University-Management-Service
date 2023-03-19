@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Course Directory</title>
+</head>
+<body>
+    <div>
+        <form method="POST" action="search_course_db">
+            <p>Search for a Course in the Directory (search by name, or course code): <input type="text" name="term"> <input type="submit" value="Search"></p>
+        </form>
+    </div>
+    <div>
+        <h2>Search Results</h2>
+        {% for result in data %}
+            {% if result|length == 1 %}
+                {{result['err_msg']}}
+            {% else %}
+                <h3>{{ result['dept_id'] }} {{ result['course_code'] }} {{ result['course_name']}}</h3>
+                <h4>Offered By the {{ result['dept_name'] }} Department</h4>
+                <ul>
+                    <li>Time Slot: {{ result['time_slot'] }}</li>
+                    <li>Building: {{ result['building_code'] }}</li>
+                    <li>Building Capacity: {{ result['building_capacity'] }}</li>
+                </ul>
+            {% endif %} 
+        {% endfor %}
+            
+
+        
+    </div>
+
+    <p><a href="student">Return to Dashboard</a></p>
+    <p><a href="homepage">Go to homepage</a></p>
+</body>
+</html>

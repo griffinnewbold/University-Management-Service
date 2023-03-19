@@ -104,74 +104,9 @@ def teardown_request(exception):
 @app.route('/')
 @app.route('/homepage')
 def index():
-	"""
-	request is a special object that Flask provides to access web request information:
+    session.pop('textbox', None)
+    return render_template("index.html")
 
-	request.method:   "GET" or "POST"
-	request.form:     if the browser submitted a form, this contains the data in the form
-	request.args:     dictionary of URL arguments, e.g., {a:1, b:2} for http://localhost?a=1&b=2
-
-	See its API: https://flask.palletsprojects.com/en/1.1.x/api/#incoming-request-data
-	"""
-
-	# DEBUG: this is debugging code to see what request looks like
-	print(request.args)
-
-
-	#
-	# example of a database query
-	#
-	'''
-	select_query = "SELECT name from test"
-	cursor = g.conn.execute(text(select_query))
-	names = []
-	for result in cursor:
-		names.append(result[0])
-	cursor.close()
-	'''
-	#
-	# Flask uses Jinja templates, which is an extension to HTML where you can
-	# pass data to a template and dynamically generate HTML based on the data
-	# (you can think of it as simple PHP)
-	# documentation: https://realpython.com/primer-on-jinja-templating/
-	#
-	# You can see an example template in templates/index.html
-	#
-	# context are the variables that are passed to the template.
-	# for example, "data" key in the context variable defined below will be 
-	# accessible as a variable in index.html:
-	#
-	#     # will print: [u'grace hopper', u'alan turing', u'ada lovelace']
-	#     <div>{{data}}</div>
-	#     
-	#     # creates a <div> tag for each element in data
-	#     # will print: 
-	#     #
-	#     #   <div>grace hopper</div>
-	#     #   <div>alan turing</div>
-	#     #   <div>ada lovelace</div>
-	#     #
-	#     {% for n in data %}
-	#     <div>{{n}}</div>
-	#     {% endfor %}
-	#
-	#context = dict(data = names)
-
-
-	#
-	# render_template looks in the templates/ folder for files.
-	# for example, the below file reads template/index.html
-	#
-	return render_template("index.html")
-
-#
-# This is an example of a different path.  You can see it at:
-# 
-#     localhost:8111/another
-#
-# Notice that the function name is another() rather than index()
-# The functions for each app.route need to have different names
-#
 @app.route('/student', methods=['POST', 'GET'])
 def student():
     uni = session.pop('textbox', None)
@@ -189,6 +124,7 @@ def student():
 	
     cursor.close()
     context = dict(data = names)
+    session['textbox'] = uni
     return render_template("student.html", **context)
 
 @app.route('/admin', methods=['POST', 'GET'])
@@ -221,6 +157,38 @@ def directory():
 def advisor():
 	return render_template("advisor.html")
 
+@app.route('/course_directory', methods=['POST', 'GET'])
+def course_directory():
+	return render_template("course_directory.html")
+
+@app.route('/search_course_db', methods=['POST'])
+def search_course_db():
+	search_term = request.form['term']
+	search_condition= '%'+search_term+'%'
+	query = "SELECT * FROM \"belongs to\" b JOIN Department d on b.dept_id = d.dept_id JOIN Course c on c.course_id = b.course_id, \"located in\" l WHERE l.course_id = " + \
+	"c.course_id and (((d.courses_offered::text ILIKE :term_a and c.course_title ILIKE :term_a) or c.course_id = :term_b) or d.dept_id ILIKE :term_a)"
+	query = text(query).bindparams(term_a=search_condition,term_b=search_term)
+	cursor = g.conn.execute(query)
+
+	if(len(search_term) != 0):
+		names = []
+		for result in cursor:
+			if(result[6] != 'None'):
+				names.append(dict(course_name = result[7], dept_id = result[0], course_code = result[6], time_slot=result[8], building_code=result[11], 
+				building_capacity=result[9], dept_name = result[4]))
+		cursor.close()
+		if(len(names) != 0):
+			context = dict(data = names)
+			return render_template("course_directory.html", **context)
+		result = [dict(err_msg = "There is no entry in our records relating to your search term, please check your search then try again")]
+		context = dict(data = result)
+		return render_template("course_directory.html", **context)
+	else:
+		result = [dict(err_msg = "There is no entry in our records relating to your search term, please check your search then try again")]
+		context = dict(data = result)
+		return render_template("course_directory.html", **context)
+
+
 @app.route('/search_db', methods=['POST'])
 def search_db():
     #gets entry and forms SQL query
@@ -246,8 +214,8 @@ def search_db():
     return render_template("directory.html", **context)
 
 # Example of adding new data to the database
-@app.route('/add', methods=['POST'])
-def add():
+@app.route('/login', methods=['POST'])
+def login():
     # accessing form inputs from user
     name = request.form['name']
     session['textbox'] = name
@@ -281,14 +249,6 @@ def add():
 	    return redirect('/instructor')
     return redirect('/')
 	
-    '''
-    # passing params in for each variable into query
-    params = {}
-    params["new_name"] = name
-    g.conn.execute(text('INSERT INTO test(name) VALUES (:new_name)'), params)
-    g.conn.commit()
-    '''
-
 
 if __name__ == "__main__":
     import click
