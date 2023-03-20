@@ -88,19 +88,6 @@ def teardown_request(exception):
 		pass
 
 
-#
-# @app.route is a decorator around index() that means:
-#   run index() whenever the user tries to access the "/" path using a GET request
-#
-# If you wanted the user to go to, for example, localhost:8111/foobar/ with POST or GET then you could use:
-#
-#       @app.route("/foobar/", methods=["POST", "GET"])
-#
-# PROTIP: (the trailing / in the path is important)
-# 
-# see for routing: https://flask.palletsprojects.com/en/1.1.x/quickstart/#routing
-# see for decorators: http://simeonfranklin.com/blog/2012/jul/1/python-decorators-in-12-steps/
-#
 @app.route('/')
 @app.route('/homepage')
 def index():
@@ -155,7 +142,20 @@ def directory():
 
 @app.route('/advisor', methods=['POST', 'GET'])
 def advisor():
-	return render_template("advisor.html")
+    uni = session.pop('textbox', None)
+    query = text("SELECT * From Person p, Employee e, Advisor a, \"belongs to\" b Where p.uni = :user_uni and e.uni = :user_uni and a.uni = :user_uni and b.uni = :user_uni").bindparams(user_uni=uni)
+    cursor = g.conn.execute(query)
+    names = []
+    for result in cursor:
+	    if(result[0] != 'None'):
+		    names.append(dict(uni=result[0], name = result[1], email = result[2],
+		 phone=result[3], addr=result[4], years_of_exp=result[5],
+		     salary=result[6], alma_mater=result[7], student_advisees=result[9],
+		     isAvailable = result[10], time_slots = result[11], dept_code = result[13]))
+    cursor.close()
+    context = dict(data = names)
+    session['textbox'] = uni
+    return render_template("advisor.html", **context)
 
 @app.route('/course_directory', methods=['POST', 'GET'])
 def course_directory():

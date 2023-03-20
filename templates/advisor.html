@@ -1,1 +1,52 @@
-hello advisor
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Advisor Dashboard</title>
+    </head>
+    <body>
+        <div>
+            <h1>Welcome to your Dashboard {% for result in data %}{{ result['name'] }}{% endfor %}</h1>
+            <h2>Contact Information</h1>
+            {% for result in data %}
+            <h4>Name: {{ result['name'] }}</h4>
+            <h4>UNI: {{ result['uni'] }}</h4>
+            <h4>Email: {{ result['email'] }}</h4>
+            <h4>Phone Number: {{ result['phone'] }}</h4>
+            <h4>Address on File: {{result['addr']}}</h4>
+            {% endfor %}
+        </div>
+        <br>
+        <div>
+            <h2>Career Information</h2>
+            {% for result in data %}
+            <h4>Current Salary: ${{ result['salary'] }}</h4>
+            <h4>Years of Experience: {{ result['years_of_exp'] }}</h4>
+            <h4>Current Department Code: {{ result['dept_code'] }}</h4>
+            <h4>Alma Mater: {{ result['alma_mater'] }}</h4>
+            {% endfor %}
+        </div>
+        <br>
+        <div>
+            <h2>Academic Information</h2>
+            {% for result in data %}
+            <h4>Current Department Code: {{ result['dept_code'] }}</h4>
+            <h4>Current Availability: {{ result['isAvailable'] }}</h4>
+            {% if result['isAvailable'] == "True"%}
+                <ul>
+                    {% for time in result['time_slots'] %} 
+                    <li>{{time}}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            <h4>UNIs for Current Student Advisees</h4>
+            <ul>
+                {% for student in result['student_advisees']%} 
+                <li>{{student}}</li>
+                {% endfor %}
+            </ul>
+            {% endfor %}
+        </div>
+        <br>
+        <p><a href="homepage">Log Out</a></p>
+    </body>
+</html>
