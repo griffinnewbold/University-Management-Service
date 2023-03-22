@@ -9,7 +9,6 @@ A debugger such as "pdb" may be helpful for debugging.
 Read about it online.
 """
 import os
-  # accessible as a variable in index.html:
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
 from flask import Flask, request, render_template, g, redirect, Response, session
@@ -18,57 +17,18 @@ tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
 app.secret_key = 'databaseproject'
 
-
-#
-# The following is a dummy URI that does not connect to a valid database. You will need to modify it to connect to your Part 2 database in order to use the data.
-#
-# XXX: The URI should be in the format of: 
-#
-#     postgresql://USER:PASSWORD@34.73.36.248/project1
-#
-# For example, if you had username zy2431 and password 123123, then the following line would be:
-#
-#     DATABASEURI = "postgresql://zy2431:123123@34.73.36.248/project1"
-#
-# Modify these with your own credentials you received from TA!
 DATABASE_USERNAME = "gcn2106"
 DATABASE_PASSWRD = "3276"
 DATABASE_HOST = "34.148.107.47" # change to 34.28.53.86 if you used database 2 for part 2
 DATABASEURI = f"postgresql://{DATABASE_USERNAME}:{DATABASE_PASSWRD}@{DATABASE_HOST}/project1"
 
-
-#
-# This line creates a database engine that knows how to connect to the URI above.
-#
 engine = create_engine(DATABASEURI)
-
-#
-# Example of running queries in your database
-# Note that this will probably not work if you already have a table named 'test' in your database, containing meaningful data. This is only an example showing you how to run queries in your database using SQLAlchemy.
-#
 with engine.connect() as conn:
-	create_table_command = """
-	CREATE TABLE IF NOT EXISTS test (
-		id serial,
-		name text
-	)
-	"""
-	res = conn.execute(text(create_table_command))
-	insert_table_command = """INSERT INTO test(name) VALUES ('grace hopper'), ('alan turing'), ('ada lovelace')"""
-	res = conn.execute(text(insert_table_command))
-	# you need to commit for create, insert, update queries to reflect
-	conn.commit()
+	pass
 
 
 @app.before_request
 def before_request():
-	"""
-	This function is run at the beginning of every web request 
-	(every time you enter an address in the web browser).
-	We use it to setup a database connection that can be used throughout the request.
-
-	The variable g is globally accessible.
-	"""
 	try:
 		g.conn = engine.connect()
 	except:
@@ -78,84 +38,81 @@ def before_request():
 
 @app.teardown_request
 def teardown_request(exception):
-	"""
-	At the end of the web request, this makes sure to close the database connection.
-	If you don't, the database could run out of memory!
-	"""
 	try:
 		g.conn.close()
 	except Exception as e:
 		pass
 
 
+
 @app.route('/')
 @app.route('/homepage')
 def index():
-    session.pop('textbox', None)
-    return render_template("index.html")
+
+	# DEBUG: this is debugging code to see what request looks like
+	print(request.args)
+	session.pop('textbox', None)
+	return render_template("index.html")
 
 @app.route('/student', methods=['POST', 'GET'])
 def student():
-    uni = session.pop('textbox', None)
-    query = text("SELECT * From Person p JOIN Student s on p.uni = s.uni JOIN takes on p.uni=takes.uni JOIN \"advised by\" a on p.uni = a.uni_s JOIN \"belongs to\" b on p.uni = b.uni Where p.uni = :user_uni")
-    query = query.bindparams(user_uni=uni)
-    cursor = g.conn.execute(query)
-    names = []
-    for result in cursor:
-	    if(result[0] != 'None'):
-		    names.append(dict(uni=result[0], name = result[1], 
-		 email=result[2], phone=result[3], addr=result[4],
-		     credits_att=result[5], credits_ern=result[6], 
+	uni = session.pop('textbox', None)
+	query = text("SELECT * From Person p JOIN Student s on p.uni = s.uni JOIN takes on p.uni=takes.uni JOIN \"advised by\" a on p.uni = a.uni_s JOIN \"belongs to\" b on p.uni = b.uni Where p.uni = :user_uni")
+	query = query.bindparams(user_uni=uni)
+	cursor = g.conn.execute(query)
+	names = []
+	for result in cursor:
+		if(result[0] != 'None'):
+			names.append(dict(uni=result[0], name = result[1], 
+		     email=result[2], phone=result[3], addr=result[4],
+			 credits_att=result[5], credits_ern=result[6], 
 			 grad_date = result[7], courses_taken=result[8],
 			 advisor=result[14], department = result[15]))
 	
-    cursor.close()
-    context = dict(data = names)
-    session['textbox'] = uni
-    return render_template("student.html", **context)
+	cursor.close()
+	context = dict(data = names)
+	session['textbox'] = uni
+	return render_template("student.html", **context)
 
-@app.route('/admin', methods=['POST', 'GET'])
-def admin():
-	return render_template("admin.html")
+@app.route('/advisor', methods=['POST', 'GET'])
+def advisor():
+	uni = session.pop('textbox', None)
+	query = text("SELECT * From Person p, Employee e, Advisor a, \"belongs to\" b Where p.uni = :user_uni and e.uni = :user_uni and a.uni = :user_uni and b.uni = :user_uni").bindparams(user_uni=uni)
+	cursor = g.conn.execute(query)
+	names = []
+	for result in cursor:
+		if(result[0] != 'None'):
+			names.append(dict(uni=result[0], name = result[1], email = result[2],
+		     phone=result[3], addr=result[4], years_of_exp=result[5],
+			 salary=result[6], alma_mater=result[7], student_advisees=result[9],
+			 isAvailable = result[10], time_slots = result[11], dept_code = result[13]))
+	cursor.close()
+	context = dict(data = names)
+	session['textbox'] = uni
+	return render_template("advisor.html", **context)
 
 
 @app.route('/instructor', methods=['POST', 'GET'])
 def instructor():
-    uni = session.pop('textbox', None)
-    query = text("SELECT * From Person p, Employee e, Instructor i, \"belongs to\" b Where p.uni = :user_uni and e.uni = :user_uni and i.uni = :user_uni and b.uni = :user_uni").bindparams(user_uni=uni)
-    cursor = g.conn.execute(query)
-    names = []
-    for result in cursor:
-	    if(result[0] != 'None'):
-		    names.append(dict(uni=result[0], name = result[1], email = result[2],
-		 phone=result[3], addr=result[4], years_of_exp=result[5],
-		     salary=result[6], alma_mater=result[7], courses_taught=result[9],
-		     papers_written = result[10], research_exp = result[12], dept_code = result[13]))
-    cursor.close()
-    context = dict(data = names)
-    return render_template("instructor.html", **context)
-
+	uni = session.pop('textbox', None)
+	query = text("SELECT * From Person p, Employee e, Instructor i, \"belongs to\" b Where p.uni = :user_uni and e.uni = :user_uni and i.uni = :user_uni and b.uni = :user_uni").bindparams(user_uni=uni)
+	cursor = g.conn.execute(query)
+	names = []
+	for result in cursor:
+		if(result[0] != 'None'):
+			names.append(dict(uni=result[0], name = result[1], email = result[2],
+		     phone=result[3], addr=result[4], years_of_exp=result[5],
+			 salary=result[6], alma_mater=result[7], courses_taught=result[9],
+			 papers_written = result[10], research_exp = result[12], dept_code = result[13]))
+	cursor.close()
+	context = dict(data = names)
+	session['textbox'] = uni
+	return render_template("instructor.html", **context)
 
 @app.route('/directory', methods=['POST', 'GET'])
 def directory():
 	return render_template("directory.html")
 
-@app.route('/advisor', methods=['POST', 'GET'])
-def advisor():
-    uni = session.pop('textbox', None)
-    query = text("SELECT * From Person p, Employee e, Advisor a, \"belongs to\" b Where p.uni = :user_uni and e.uni = :user_uni and a.uni = :user_uni and b.uni = :user_uni").bindparams(user_uni=uni)
-    cursor = g.conn.execute(query)
-    names = []
-    for result in cursor:
-	    if(result[0] != 'None'):
-		    names.append(dict(uni=result[0], name = result[1], email = result[2],
-		 phone=result[3], addr=result[4], years_of_exp=result[5],
-		     salary=result[6], alma_mater=result[7], student_advisees=result[9],
-		     isAvailable = result[10], time_slots = result[11], dept_code = result[13]))
-    cursor.close()
-    context = dict(data = names)
-    session['textbox'] = uni
-    return render_template("advisor.html", **context)
 
 @app.route('/course_directory', methods=['POST', 'GET'])
 def course_directory():
@@ -188,91 +145,223 @@ def search_course_db():
 		context = dict(data = result)
 		return render_template("course_directory.html", **context)
 
-
 @app.route('/search_db', methods=['POST'])
 def search_db():
-    #gets entry and forms SQL query
-    name = request.form['name']
-    query = text("SELECT * FROM Person p where p.name ILIKE :search_term or p.uni ILIKE :search_term")
-    search_condition= '%'+name+'%'
-    query = query.bindparams(search_term=search_condition)
+	#gets entry and forms SQL query
+	name = request.form['name']
+	query = text("SELECT * FROM Person p where p.name ILIKE :search_term or p.uni ILIKE :search_term")
+	search_condition= '%'+name+'%'
+	query = query.bindparams(search_term=search_condition)
 
-    #executes the query and parses the results
-    cursor = g.conn.execute(query)
-    names = []
-    for result in cursor:	
-        if(result[0] != 'None'):
-             names.append(result)
-    cursor.close()
+	#executes the query and parses the results
+	cursor = g.conn.execute(query)
+	names = []
+	for result in cursor:
+		if(result[0] != 'None'):
+			names.append(result)
+	cursor.close()
 
-    #updates the page contents then refreshes
-    if(len(names) != 0):
-       context = dict(data = names)
-    else:
-       result = ["There is no entry in our records relating to your search term, please check your search then try again"]
-       context = dict(data = result)
-    return render_template("directory.html", **context)
+	#updates the page contents then refreshes
+	if(len(names) != 0):
+		context = dict(data = names)
+	else:
+		result = ["There is no entry in our records relating to your search term, please check your search then try again"]
+		context = dict(data = result)
+	return render_template("directory.html", **context)
+
 
 # Example of adding new data to the database
 @app.route('/login', methods=['POST'])
 def login():
-    # accessing form inputs from user
-    name = request.form['name']
-    session['textbox'] = name
-    params = {}
-    params["new_name"] = name
-    names = params["new_name"]
+	# accessing form inputs from user
+	name = request.form['name']
+	session['textbox'] = name
+	params = {}
+	params["new_name"] = name
+	names = params["new_name"]
 
-    #error checking for empty login field
-    if(len(names) == 0):
-	    return redirect('/')
+	#error checking for empty login field
+	if(len(names) == 0):
+		return redirect('/')
 	
-    #sql query to see if we have a valid user
-    select_query = "SELECT uni FROM Person"
-    cursor = g.conn.execute(text(select_query))
-    res = []
-    for result in cursor:
-	    res.append(result[0])
-    cursor.close()
+	#sql query to see if we have a valid user
+	select_query = "SELECT uni FROM Person"
+	cursor = g.conn.execute(text(select_query))
+	res = []
+	for result in cursor:
+		res.append(result[0])
+	cursor.close()
 
-    if(names not in res and names != "admin"):
-	    context = dict(data = "Invalid UNI, Please Try Again!")
-	    return render_template("index.html", **context)
+	if(names not in res and names != "admin"):
+		context = dict(data = "Invalid UNI, Please Try Again!")
+		return render_template("index.html", **context)
 	
-    if(names == 'admin'):
-	    return redirect('/admin')
-    elif(names[0] == 'a'):
-	    return redirect('/advisor')
-    elif(names[0] == 's'):
-	    return redirect('/student')
-    elif(names[0] == 'i'):
-	    return redirect('/instructor')
-    return redirect('/')
-	
+	if(names == 'admin'):
+		return redirect('/admin')
+	elif(names[0] == 'a'):
+		return redirect('/advisor')
+	elif(names[0] == 's'):
+		return redirect('/student')
+	elif(names[0] == 'i'):
+		return redirect('/instructor')
+	return redirect('/')
+
+'''
+All functionality relating to the Admin
+'''
+@app.route('/admin', methods=['POST', 'GET'])
+def admin():
+	return render_template("admin.html")
+
+@app.route('/admin_enroll', methods=['POST', 'GET'])
+def admin_enroll():
+	select_query = "SELECT * FROM Person"
+	cursor = g.conn.execute(text(select_query))
+	res = []
+	for result in cursor:
+		if(result[0] != 'None'):
+			res.append(dict(uni=result[0], name=result[1], email=result[2], phone = result[3], address = result[4]))
+	cursor.close()
+	context = dict(data = res)
+	return render_template("admin_enroll.html", **context)
+
+@app.route('/admin_catalog', methods=['POST', 'GET'])
+def admin_catalog():
+	select_query = "SELECT * FROM Course"
+	cursor = g.conn.execute(text(select_query))
+	res = []
+	for result in cursor:
+		if(result[0] != 'None'):
+			res.append(dict(course_id = result[0], course_title = result[1], time = result[2], size = result[3]))
+	cursor.close()
+	context = dict(data = res)
+	return render_template("admin_catalog.html", **context)
+
+@app.route('/admin_dept', methods=['POST', 'GET'])
+def admin_dept():
+	select_query = text("SELECT * FROM Department")
+	cursor = g.conn.execute(select_query)
+	res = []
+	for result in cursor:
+		res.append(dict(dept_id=result[0], dept_title = result[1], courses=result[2]))
+	cursor.close()
+	context = dict(data = res)
+	return render_template("admin_dept.html", **context)
+
+@app.route('/admin_construction', methods=['POST', 'GET'])
+def admin_construction():
+	select_query = text("SELECT * FROM Building")
+	cursor = g.conn.execute(select_query)
+	res = []
+	for result in cursor:
+		res.append(dict(building_id=result[0], addr = result[1], cap=result[2]))
+	cursor.close()
+	context = dict(data = res)
+	return render_template("admin_construction.html", **context)
+
+@app.route('/begin_addition_process', methods=['GET', 'POST'])
+def begin_addition_process():
+	uni = request.form['textbox1'] 
+	name = request.form['textbox2'] 
+	email = request.form['textbox3']
+	phone = request.form['textbox4']
+	address = request.form['textbox5']
+	insert_query = text("INSERT INTO Person (uni, name, email, phone_number, address) VALUEs (:a, :b, :c, :d, :e)")
+	insert_query = insert_query.bindparams(a=uni, b=name, c=email, d=phone, e=address)
+	if(uni[0] == 's'):
+		return redirect('/admin_enroll_student')
+	elif(uni[0] == 'a'):
+		return redirect('/admin_employ_advisor')
+	elif(uni[0] == 'i'):
+		return redirect('/admin_enroll_instructor')
+	else:
+		return redirect('/admin_enroll')
+
+@app.route('/admin_enroll_student', methods=['GET','POST'])
+def admin_enroll_student():
+	return render_template('admin_enroll_student.html')
+
+@app.route('/admin_employ_advisor', methods=['GET','POST'])
+def admin_employ_advisor():
+	return render_template('admin_employ_advisor.html')
+
+@app.route('/admin_employ_instructor', methods=['GET','POST'])
+def admin_employ_instructor():
+	return render_template('admin_employ_instructor.html')
+
+
+
+
+
+@app.route('/add_dept_to_db', methods=['GET', 'POST'])
+def add_dept_to_db():
+	dept_id = request.form['textbox1']
+	dept_title = request.form['textbox2']
+	insert_query = text("INSERT INTO Department (dept_id, department_title, courses_offered) VALUES (:a, :b, :c)")
+	insert_query = insert_query.bindparams(a=dept_id,b=dept_title,c=list())
+	g.conn.execute(insert_query)
+	g.conn.commit()
+	return redirect('/admin_dept')
+
+@app.route('/add_building_to_db', methods=['GET', 'POST'])
+def add_building_to_db():
+	building_id = request.form['textbox1']
+	address = request.form['textbox2']
+	capacity = int(request.form['textbox3'])
+	insert_query = text("INSERT INTO Building (building_id, address, capacity) VALUES (:a, :b, :c)")
+	insert_query = insert_query.bindparams(a=building_id,b=address,c=capacity)
+	g.conn.execute(insert_query)
+	g.conn.commit()
+	return redirect('/admin_construction')
+
+@app.route('/add_course_to_db', methods=['GET', 'POST'])
+def add_course_to_db():
+	course_id = request.form['textbox1'] 
+	course_title = request.form['textbox2'] 
+	course_capacity = int(request.form['textbox3'])
+	course_dept = request.form['textbox4']
+	course_time = request.form['textbox5']
+	course_building = request.form['textbox6']
+	insert_query = "INSERT INTO Course (course_id, course_title, time_slot, course_capacity) VALUES (:a, :b, :c, :d)"
+	insert_query = text(insert_query).bindparams(a = course_id, b = course_title, c=course_time, d = course_capacity)
+	g.conn.execute(insert_query)
+	g.conn.commit()
+	insert_query = text("INSERT INTO \"belongs to\" (dept_id, course_id, uni) VALUES (:a, :b, :c)").bindparams(a = course_dept, b =course_id, c = 'None')
+	g.conn.execute(insert_query)
+	g.conn.commit()
+	insert_query = text("INSERT INTO \"located in\" (course_id, building_id) VALUES (:a, :b)").bindparams(a = course_id, b = course_building)
+	g.conn.execute(insert_query)
+	g.conn.commit()
+	update_query = text("UPDATE Department d SET courses_offered = array_append(courses_offered, :a) WHERE d.dept_id = :b").bindparams(a=course_title,b=course_dept)
+	g.conn.execute(update_query)
+	g.conn.commit()
+	return redirect('/admin_catalog')
+
+def delete_course():
+	delete_query = text("DELETE FROM \"located in\" Where course_id = \'2402\'")
+	g.conn.execute(delete_query)
+	g.conn.commit()
+	delete_query = text("DELETE FROM \"belongs to\" Where course_id = \'2402\'")
+	g.conn.execute(delete_query)
+	g.conn.commit()
+	delete_query = text("DELETE FROM Course Where course_id = \'2402\'")
+	g.conn.execute(delete_query)
+	g.conn.commit()
+
+
 
 if __name__ == "__main__":
-    import click
+	import click
 
-    @click.command()
-    @click.option('--debug', is_flag=True)
-    @click.option('--threaded', is_flag=True)
-    @click.argument('HOST', default='0.0.0.0')
-    @click.argument('PORT', default=8111, type=int)
-    def run(debug, threaded, host, port):
-	    """
-	    This function handles command line parameters.
-	    Run the server using:
-
-		    python server.py
-
-	    Show the help text using:
-
-		    python server.py --help
-
-	    """
-	    HOST, PORT = host, port
-	    print("running on %s:%d" % (HOST, PORT))
-	    app.run(host=HOST, port=PORT, debug=debug, threaded=threaded)
+	@click.command()
+	@click.option('--debug', is_flag=True)
+	@click.option('--threaded', is_flag=True)
+	@click.argument('HOST', default='0.0.0.0')
+	@click.argument('PORT', default=8111, type=int)
+	def run(debug, threaded, host, port):
+		HOST, PORT = host, port
+		print("running on %s:%d" % (HOST, PORT))
+		app.run(host=HOST, port=PORT, debug=debug, threaded=threaded)
 
 run()
 
