@@ -1,1 +1,75 @@
-employ instructor
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Admin Enrollment Dashboard</title>
+        <style>
+            #form {
+              text-align: center;
+              position: absolute;
+              top: 10px;
+              right: 0px;
+              padding-right: 5%;
+              padding-left: 1%;
+            }
+          
+            #form h2 {
+              margin-top: 0;
+              text-align: center;
+            }
+          
+            #form form {
+              display: inline-block;
+              text-align: left;
+            }
+          
+            #form form label {
+              display: block;
+              margin-bottom: 10px;
+            }
+          
+            #form form input[type="text"], #form form input[type="submit"] {
+              display: block;
+              margin-bottom: 10px;
+              margin-left: auto;
+              margin-right: auto;
+            }
+          
+            #form form input[type="submit"] {
+              margin-top: 20px;
+            }
+          </style>
+          
+    </head>
+    <body>
+        <div>
+            <p>You are in the Process of Employing an Instructor</p>
+        </div>
+        <div id="form">
+            <h2>Continue Employing an Instructor</h2>
+            <form action="employ_instructor" method="post">
+                <label for="textbox1">Years of Experience:</label>
+                <input type="text" id="textbox1" name="textbox1"><br>
+
+                <label for="textbox2">Salary:</label>
+                <input type="text" id="textbox2" name="textbox2"><br>
+
+                <label for="textbox3">Alma Mater:</label>
+                <input type="text" id="textbox3" name="textbox3"><br>
+
+                <label for="textbox4">Research Experience:</label>
+                <input type="text" id="textbox4" name="textbox4"><br>
+
+                <label for="textbox5">Department Code:</label>
+                <input type="text" id="textbox5" name="textbox5"><br>
+              
+                <input type="submit" value="Employ Instructor">
+              </form>
+        </div>
+        <br>
+        <div>
+        </div>
+        <br>
+        <p><a href="admin">Return to Dashboard</a></p>
+        <p><a href="homepage">Log Out</a></p>
+    </body>
+</html>

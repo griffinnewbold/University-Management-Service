@@ -58,7 +58,7 @@ def index():
 @app.route('/student', methods=['POST', 'GET'])
 def student():
 	uni = session.pop('textbox', None)
-	query = text("SELECT * From Person p JOIN Student s on p.uni = s.uni JOIN takes on p.uni=takes.uni JOIN \"advised by\" a on p.uni = a.uni_s JOIN \"belongs to\" b on p.uni = b.uni Where p.uni = :user_uni")
+	query = text("SELECT * From Person p FULL JOIN Student s on p.uni = s.uni FULL JOIN takes on p.uni=takes.uni FULL JOIN \"advised by\" a on p.uni = a.uni_s FULL JOIN \"belongs to\" b on p.uni = b.uni Where p.uni = :user_uni")
 	query = query.bindparams(user_uni=uni)
 	cursor = g.conn.execute(query)
 	names = []
@@ -278,7 +278,7 @@ def begin_addition_process():
 	elif(uni[0] == 'a'):
 		return redirect('/admin_employ_advisor')
 	elif(uni[0] == 'i'):
-		return redirect('/admin_enroll_instructor')
+		return redirect('/admin_employ_instructor')
 	else:
 		return redirect('/admin_enroll')
 
@@ -304,6 +304,36 @@ def enroll_student():
 	g.conn.commit()
 	return redirect('/admin_enroll')
 
+@app.route('/employ_instructor', methods=['GET', 'POST'])
+def employ_instructor():
+	uni = session.pop('uni', None)
+	name = session.pop('name', None)
+	email = session.pop('email', None)
+	phone = session.pop('phone', None)
+	address = session.pop('address', None)
+
+	year_of_exp = request.form['textbox1']
+	salary = int(request.form['textbox2'])
+	school = request.form['textbox3']
+	research_exp = request.form['textbox4']
+	dept_id = request.form['textbox5']
+
+	p_query = person_query.bindparams(a=uni,b=name,c=email,d=phone,e=address)
+	employee_query = text("INSERT INTO Employee (years_of_experience, salary, alma_mater, uni) VALUES (:a, :b, :c, :d)")
+	employee_query = employee_query.bindparams(a=year_of_exp,b=salary,c=school, d=uni)
+	instructor_query = text("INSERT INTO Instructor (courses_taught, papers_published, uni, research_experience) VALUES (:a, :b, :c, :d)")
+	instructor_query = instructor_query.bindparams(a=list(),b=list(),c=uni, d=research_exp)
+
+	belongs_query = text("INSERT INTO \"belongs to\" (dept_id, course_id, uni) VALUES (:a, :b, :c)")
+	belongs_query = belongs_query.bindparams(a=dept_id, b='None', c=uni)
+
+	g.conn.execute(p_query)
+	g.conn.execute(employee_query)
+	g.conn.execute(instructor_query)
+	g.conn.execute(belongs_query)
+	g.conn.commit()
+	return redirect('/admin_enroll')
+
 
 @app.route('/admin_enroll_student', methods=['GET','POST'])
 def admin_enroll_student():
@@ -316,10 +346,6 @@ def admin_employ_advisor():
 @app.route('/admin_employ_instructor', methods=['GET','POST'])
 def admin_employ_instructor():
 	return render_template('admin_employ_instructor.html')
-
-
-
-
 
 @app.route('/add_dept_to_db', methods=['GET', 'POST'])
 def add_dept_to_db():
@@ -353,13 +379,10 @@ def add_course_to_db():
 	insert_query = "INSERT INTO Course (course_id, course_title, time_slot, course_capacity) VALUES (:a, :b, :c, :d)"
 	insert_query = text(insert_query).bindparams(a = course_id, b = course_title, c=course_time, d = course_capacity)
 	g.conn.execute(insert_query)
-	g.conn.commit()
 	insert_query = text("INSERT INTO \"belongs to\" (dept_id, course_id, uni) VALUES (:a, :b, :c)").bindparams(a = course_dept, b =course_id, c = 'None')
 	g.conn.execute(insert_query)
-	g.conn.commit()
 	insert_query = text("INSERT INTO \"located in\" (course_id, building_id) VALUES (:a, :b)").bindparams(a = course_id, b = course_building)
 	g.conn.execute(insert_query)
-	g.conn.commit()
 	update_query = text("UPDATE Department d SET courses_offered = array_append(courses_offered, :a) WHERE d.dept_id = :b").bindparams(a=course_title,b=course_dept)
 	g.conn.execute(update_query)
 	g.conn.commit()
@@ -368,10 +391,8 @@ def add_course_to_db():
 def delete_course():
 	delete_query = text("DELETE FROM \"located in\" Where course_id = \'2402\'")
 	g.conn.execute(delete_query)
-	g.conn.commit()
 	delete_query = text("DELETE FROM \"belongs to\" Where course_id = \'2402\'")
 	g.conn.execute(delete_query)
-	g.conn.commit()
 	delete_query = text("DELETE FROM Course Where course_id = \'2402\'")
 	g.conn.execute(delete_query)
 	g.conn.commit()
