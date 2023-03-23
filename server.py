@@ -21,6 +21,7 @@ DATABASE_USERNAME = "gcn2106"
 DATABASE_PASSWRD = "3276"
 DATABASE_HOST = "34.148.107.47" # change to 34.28.53.86 if you used database 2 for part 2
 DATABASEURI = f"postgresql://{DATABASE_USERNAME}:{DATABASE_PASSWRD}@{DATABASE_HOST}/project1"
+person_query = text("INSERT INTO Person (uni, name, email, phone_number, address) VALUES (:a, :b, :c, :d, :e)")
 
 engine = create_engine(DATABASEURI)
 with engine.connect() as conn:
@@ -266,8 +267,12 @@ def begin_addition_process():
 	email = request.form['textbox3']
 	phone = request.form['textbox4']
 	address = request.form['textbox5']
-	insert_query = text("INSERT INTO Person (uni, name, email, phone_number, address) VALUEs (:a, :b, :c, :d, :e)")
-	insert_query = insert_query.bindparams(a=uni, b=name, c=email, d=phone, e=address)
+	session['uni'] = uni
+	session['name'] = name
+	session['email'] = email
+	session['phone'] = phone
+	session['address'] = address
+	
 	if(uni[0] == 's'):
 		return redirect('/admin_enroll_student')
 	elif(uni[0] == 'a'):
@@ -276,6 +281,29 @@ def begin_addition_process():
 		return redirect('/admin_enroll_instructor')
 	else:
 		return redirect('/admin_enroll')
+
+@app.route('/enroll_student', methods=['GET', 'POST'])
+def enroll_student():
+	grad_date = request.form['textbox1']
+	advisor_uni = request.form['textbox2']
+	uni = session.pop('uni', None)
+	name = session.pop('name', None)
+	email = session.pop('email', None)
+	phone = session.pop('phone', None)
+	address = session.pop('address', None)
+
+	p_query = person_query.bindparams(a=uni,b=name,c=email,d=phone,e=address)
+
+	student_query = text("INSERT INTO Student (credits_attempted, credits_earned, expected_grad_year, course_record, uni) VALUES (:a, :b, :c, :d, :e)")
+	student_query = student_query.bindparams(a=0.0,b=0.0,c=int(grad_date), d= list(), e = uni)
+
+	assign_advisor = text("INSERT INTO \"advised by\" (uni_s, uni_a) VALUES (:a, :b)").bindparams(a=uni,b=advisor_uni)
+	g.conn.execute(p_query)
+	g.conn.execute(student_query)
+	g.conn.execute(assign_advisor)
+	g.conn.commit()
+	return redirect('/admin_enroll')
+
 
 @app.route('/admin_enroll_student', methods=['GET','POST'])
 def admin_enroll_student():
