@@ -2,6 +2,42 @@
 <html>
     <head>
         <title>Instructor Dashboard</title>
+        <style>
+            #form {
+              text-align: center;
+              position: absolute;
+              top: 10px;
+              right: 0px;
+              padding-right: 5%;
+              padding-left: 1%;
+            }
+          
+            #form h2 {
+              margin-top: 0;
+              text-align: center;
+            }
+          
+            #form form {
+              display: inline-block;
+              text-align: left;
+            }
+          
+            #form form label {
+              display: block;
+              margin-bottom: 10px;
+            }
+          
+            #form form input[type="text"], #form form input[type="submit"] {
+              display: block;
+              margin-bottom: 10px;
+              margin-left: auto;
+              margin-right: auto;
+            }
+          
+            #form form input[type="submit"] {
+              margin-top: 20px;
+            }
+          </style>
     </head>
     <body>
         <div>
@@ -38,8 +74,33 @@
             <h4>     {{ entry}}</h4>
             {% endfor %}
             {% endfor %}
+            <br>
+            {% for result in data %}
+            <h3>Courses Currently Teaching</h3>
+            {% for entry in result['courses_teaching'] %}
+            <h4>     {{ entry}}</h4>
+            {% endfor %}
+            {% endfor %}
         </div>
         <br>
+        <div id="form">
+            <h2>Update Information</h2>
+            <form action="update_instructor" method="post">
+                <label for="textbox1">New Department: </label>
+                <input type="text" id="textbox1" name="textbox1"><br>
+
+                <label for="textbox2">Teach a New Course: </label>
+                <input type="text" id="textbox2" name="textbox2"><br>
+
+                <label for="textbox3">Transfer Courses (Yes/No):</label>
+                <input type="text" id="textbox3" name="textbox3"><br>
+
+                <label for="textbox4">Title of New Paper:</label>
+                <input type="text" id="textbox4" name="textbox4"><br>
+              
+                <input type="submit" value="Update Information">
+              </form>
+        </div>
         <p><a href="homepage">Log Out</a></p>
     </body>
 </html>

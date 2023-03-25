@@ -164,11 +164,59 @@ def instructor():
 			names.append(dict(uni=result[0], name = result[1], email = result[2],
 		     phone=result[3], addr=result[4], years_of_exp=result[5],
 			 salary=result[6], alma_mater=result[7], courses_taught=result[9],
-			 papers_written = result[10], research_exp = result[12], dept_code = result[13]))
+			 papers_written = result[10], research_exp = result[12], dept_code = result[13], courses_teaching = list()))
+	cursor.close()
+	query = text("SELECT * From Course c, teaches t WHERE t.course_id = c.course_id and t.uni = :user_uni").bindparams(user_uni=uni)
+	cursor = g.conn.execute(query)
+	for result in cursor:
+		names[0]['courses_teaching'].append(result[1])
 	cursor.close()
 	context = dict(data = names)
+
 	session['textbox'] = uni
+	session['courses_taught'] = names[0]['courses_taught']
+	session['courses_teaching'] = names[0]['courses_teaching']
+	session['papers'] = names[0]['papers_written']
+
 	return render_template("instructor.html", **context)
+
+@app.route('/update_instructor', methods=['POST','GET'])
+def update_instructor():
+	uni = session.pop('textbox', None)
+	courses_taught = session.pop('courses_taught',None)
+	courses_teaching = session.pop('courses_teaching', None)
+	papers = session.pop('papers', None)
+
+	new_dept = request.form['textbox1']
+	new_course_id = request.form['textbox2']
+	willTransfer = request.form['textbox3']
+	new_papers = request.form['textbox4']
+
+	if(willTransfer == 'Yes' or willTransfer == 'Yes'):
+		for course in courses_teaching:
+			if(course not in courses_taught):
+				courses_taught.append(course)
+		update_query = text("UPDATE Instructor SET courses_taught = :a WHERE uni = :c").bindparams(a=courses_taught, c=uni)
+		delete_query = text("DELETE From teaches WHERE uni = :a").bindparams(a=uni)
+		g.conn.execute(update_query)
+		g.conn.execute(delete_query)
+	if(new_course_id != ''):
+		insert_query = text("INSERT into teaches (course_id, uni) VALUES (:a, :b)").bindparams(a=new_course_id, b=uni)
+		g.conn.execute(insert_query)
+	if(new_dept != ''):
+		delete_query = text("DELETE FROM \"belongs to\" Where uni = :a").bindparams(a=uni)
+		g.conn.execute(delete_query)
+		g.conn.commit()
+		insert_query = text("INSERT INTO \"belongs to\" (dept_id, course_id, uni) VALUES (:a, :b, :c)").bindparams(a=new_dept, b='None', c=uni)
+		g.conn.execute(insert_query)
+	if(new_papers != ''):
+		papers.append(new_papers)
+		update_query = text("UPDATE Instructor SET papers_published = :a WHERE uni = :c").bindparams(a=papers, c=uni)
+		g.conn.execute(update_query)
+	g.conn.commit()
+	session['textbox'] = uni
+	return redirect('/instructor')
+
 
 @app.route('/directory', methods=['POST', 'GET'])
 def directory():
