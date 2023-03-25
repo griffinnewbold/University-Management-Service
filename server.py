@@ -77,8 +77,8 @@ def student():
 
 @app.route('/advisor', methods=['POST', 'GET'])
 def advisor():
-	updateTimeSlot()
 	uni = session.pop('textbox', None)
+	update_advisees(uni)
 	query = text("SELECT * From Person p, Employee e, Advisor a, \"belongs to\" b Where p.uni = :user_uni and e.uni = :user_uni and a.uni = :user_uni and b.uni = :user_uni").bindparams(user_uni=uni)
 	cursor = g.conn.execute(query)
 	names = []
@@ -91,8 +91,67 @@ def advisor():
 	cursor.close()
 	context = dict(data = names)
 	session['textbox'] = uni
+	session['dept'] = names[0]['dept_code']
+	session['time'] = names[0]['time_slots']
+	session['avail'] = names[0]['isAvailable']
 	return render_template("advisor.html", **context)
 
+def update_advisees(uni):
+	select_query = text("SELECT student_advisees From Advisor a Where a.uni = :uni").bindparams(uni=uni)
+	advised_by_relation = text("SELECT uni_s FROM \"advised by\" Where uni_a = :uni").bindparams(uni=uni)
+	cursor = g.conn.execute(select_query)
+	uni_list = []
+	for entry in cursor:
+		uni_list = entry[0]
+	cursor.close()
+	new_uni_list = []
+	cursor = g.conn.execute(advised_by_relation)
+	for entry in cursor:
+		if(entry[0] not in uni_list):
+			new_uni_list.append(entry[0])
+	cursor.close()
+	for n_uni in new_uni_list:
+		uni_list.append(n_uni)
+
+	update_query = text("UPDATE Advisor SET student_advisees = :a WHERE uni = :b").bindparams(a=uni_list,b=uni)
+	g.conn.execute(update_query)
+	g.conn.commit()
+
+
+
+@app.route('/update_advisor', methods=['POST', 'GET'])
+def update_advisor():
+	uni = session.pop('textbox', None)
+	times = session.pop('time', None)
+	avail = session.pop('avail', None)
+	new_dept = request.form['textbox1']
+
+	time_slot = request.form['textbox2']
+	if('' in times):
+		times.remove('')
+	if(time_slot in times and len(times) > 1):
+		times.remove(time_slot)
+	elif(time_slot not in times and time_slot != ''):
+		times.append(time_slot)
+
+	switch_avail = request.form['textbox3']
+	if(switch_avail == "Yes" or switch_avail == "yes"):
+		if(avail == "True"):
+			avail = "False"
+		else:
+			avail = "True"
+	
+	update_query = text("UPDATE Advisor SET isavailable = :a, daily_appointments = :b WHERE uni = :c").bindparams(a=avail, b=times, c=uni)
+	g.conn.execute(update_query)
+	if(new_dept != ''):
+		delete_query = text("DELETE FROM \"belongs to\" Where uni = :a").bindparams(a=uni)
+		g.conn.execute(delete_query)
+		g.conn.commit()
+		insert_query = text("INSERT INTO \"belongs to\" (dept_id, course_id, uni) VALUES (:a, :b, :c)").bindparams(a=new_dept, b='None', c=uni)
+		g.conn.execute(insert_query)
+	g.conn.commit()
+	session['textbox'] = uni
+	return redirect('/advisor')
 
 @app.route('/instructor', methods=['POST', 'GET'])
 def instructor():
@@ -370,7 +429,7 @@ def admin_enroll_student():
 	return render_template('admin_enroll_student.html')
 
 @app.route('/admin_employ_advisor', methods=['GET','POST'])
-def admin_employ_advisor():
+def admin_employ_advisor() :
 	return render_template('admin_employ_advisor.html')
 
 @app.route('/admin_employ_instructor', methods=['GET','POST'])
@@ -427,13 +486,6 @@ def delete_course():
 	g.conn.execute(delete_query)
 	g.conn.commit()
 
-
-def updateTimeSlot():
-	update_stmt = text("UPDATE Advisor SET daily_appointments = :new_value WHERE Advisor.uni = :uni")
-	a = ["8:40-9:55"]
-	update_stmt = update_stmt.bindparams(new_value = a, uni = 'aba2023')
-	g.conn.execute(update_stmt)
-	g.conn.commit()
 
 if __name__ == "__main__":
 	import click
