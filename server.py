@@ -77,6 +77,7 @@ def student():
 
 @app.route('/advisor', methods=['POST', 'GET'])
 def advisor():
+	updateTimeSlot()
 	uni = session.pop('textbox', None)
 	query = text("SELECT * From Person p, Employee e, Advisor a, \"belongs to\" b Where p.uni = :user_uni and e.uni = :user_uni and a.uni = :user_uni and b.uni = :user_uni").bindparams(user_uni=uni)
 	cursor = g.conn.execute(query)
@@ -334,6 +335,35 @@ def employ_instructor():
 	g.conn.commit()
 	return redirect('/admin_enroll')
 
+@app.route('/employ_advisor', methods=['GET','POST'])
+def employ_advisor():
+	uni = session.pop('uni', None)
+	name = session.pop('name', None)
+	email = session.pop('email', None)
+	phone = session.pop('phone', None)
+	address = session.pop('address', None)
+
+	year_of_exp = request.form['textbox1']
+	salary = int(request.form['textbox2'])
+	school = request.form['textbox3']
+	time_slot = request.form['textbox4']
+	dept_id = request.form['textbox5']
+
+	p_query = person_query.bindparams(a=uni,b=name,c=email,d=phone,e=address)
+	employee_query = text("INSERT INTO Employee (years_of_experience, salary, alma_mater, uni) VALUES (:a, :b, :c, :d)")
+	employee_query = employee_query.bindparams(a=year_of_exp,b=salary,c=school, d=uni)
+	advisor_query = text("INSERT INTO Advisor (student_advisees, isavailable, daily_appointments, uni) VALUES (:a, :b, :c, :d)")
+	advisor_query = advisor_query.bindparams(a=list(),b='True',c=[time_slot], d=uni)
+
+	belongs_query = text("INSERT INTO \"belongs to\" (dept_id, course_id, uni) VALUES (:a, :b, :c)")
+	belongs_query = belongs_query.bindparams(a=dept_id, b='None', c=uni)
+
+	g.conn.execute(p_query)
+	g.conn.execute(employee_query)
+	g.conn.execute(advisor_query)
+	g.conn.execute(belongs_query)
+	g.conn.commit()
+	return redirect('/admin_enroll')
 
 @app.route('/admin_enroll_student', methods=['GET','POST'])
 def admin_enroll_student():
@@ -398,6 +428,12 @@ def delete_course():
 	g.conn.commit()
 
 
+def updateTimeSlot():
+	update_stmt = text("UPDATE Advisor SET daily_appointments = :new_value WHERE Advisor.uni = :uni")
+	a = ["8:40-9:55"]
+	update_stmt = update_stmt.bindparams(new_value = a, uni = 'aba2023')
+	g.conn.execute(update_stmt)
+	g.conn.commit()
 
 if __name__ == "__main__":
 	import click
