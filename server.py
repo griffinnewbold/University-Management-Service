@@ -49,7 +49,6 @@ def teardown_request(exception):
 @app.route('/')
 @app.route('/homepage')
 def index():
-
 	# DEBUG: this is debugging code to see what request looks like
 	print(request.args)
 	session.pop('textbox', None)
@@ -58,8 +57,8 @@ def index():
 @app.route('/student', methods=['POST', 'GET'])
 def student():
 	uni = session.pop('textbox', None)
-	query = text("SELECT * From Person p FULL JOIN Student s on p.uni = s.uni FULL JOIN takes on p.uni=takes.uni FULL JOIN \"advised by\" a on p.uni = a.uni_s FULL JOIN \"belongs to\" b on p.uni = b.uni Where p.uni = :user_uni")
-	query = query.bindparams(user_uni=uni)
+	query = text("SELECT * From Person p, Student s, takes t, \"advised by\" a, \"belongs to\" b Where p.uni = :a and t.uni = :a and b.uni = :a and a.uni_s = :a and s.uni = :a")
+	query = query.bindparams(a=uni)
 	cursor = g.conn.execute(query)
 	names = []
 	for result in cursor:
@@ -69,11 +68,126 @@ def student():
 			 credits_att=result[5], credits_ern=result[6], 
 			 grad_date = result[7], courses_taken=result[8],
 			 advisor=result[14], department = result[15]))
-	
 	cursor.close()
+
+	query = text("SELECT * FROM takes Where uni = :uni").bindparams(uni=uni)
+	cursor = g.conn.execute(query)
+	courses_taking = []
+	for res in cursor:
+		courses_taking.append((res[0], res[2]))
+	cursor.close()
+	names[0]['courses_taking'] = courses_taking
+	course_sugs = course_suggestion(uni, courses_taking, names[0]['courses_taken'], names[0]['department'])
+	if(len(course_sugs) > 0):
+		names[0]['course_suggestion'] = course_sugs
+	else:
+		response = []
+		response.append("We do not have courses to recommend at this time")
+		names[0]['course_suggestion'] = response
+	filtered_data = []
+	filtered_data.append(names[0])
+	names = filtered_data
+
 	context = dict(data = names)
 	session['textbox'] = uni
+	session['courses_complete'] = names[0]['courses_taken']
+	session['courses_taking'] = names[0]['courses_taking']
+	session['credits_att'] = names[0]['credits_att']
+	session['credits_ern'] = names[0]['credits_ern']
 	return render_template("student.html", **context)
+
+def course_suggestion(uni, courses_taking, courses_taken, dept_id):
+	#checks for courses offered by department and see which ones you 
+	#have not taken or currently taking and returns them as recommendations
+	select_query = text("SELECT * From Department d, \"belongs to\" b Where d.dept_id = :a and b.uni = :b").bindparams(a=dept_id,b=uni)
+	cursor = g.conn.execute(select_query)
+
+	course_suggestions_list = []
+	for entry in cursor:
+		dept_offered = list(entry[2])
+	cursor.close()
+	for course in dept_offered:
+		if(notPresent(course, courses_taken)):
+			course_suggestions_list.append(course)
+	select_query = text("SELECT * From \"belongs to\" b JOIN Department d on b.dept_id = d.dept_id JOIN Course c on b.course_id = c.course_id WHERE d.dept_id = :a and (b.uni = :b or b.uni = :c)")
+	select_query = select_query.bindparams(a=dept_id, b=uni, c='None')
+	cursor = g.conn.execute(select_query)
+	for entry in cursor:
+		if(entry[1] != 'None'):
+			if(not notPresent(entry[1], courses_taking) and entry[7] in course_suggestions_list):
+				course_suggestions_list.remove(entry[7])
+	cursor.close()
+	return course_suggestions_list
+
+@app.route('/update_student', methods=['POST','GET'])
+def update_student():
+	uni = session.pop('textbox', None)
+	courses_complete = session.pop('courses_complete', None)
+	courses_taking = session.pop('courses_taking', None)
+	credits_att = float(session.pop('credits_att', None))
+	credits_ern = float(session.pop('credits_ern', None))
+
+	new_dept = request.form['textbox1']
+	course_id = request.form['textbox2']
+	willTransfer = request.form['textbox3']
+	credits = request.form['textbox4']
+
+	if(new_dept != ''):
+		delete_query = text("DELETE FROM \"belongs to\" Where uni = :a").bindparams(a=uni)
+		g.conn.execute(delete_query)
+		g.conn.commit()
+		insert_query = text("INSERT INTO \"belongs to\" (dept_id, course_id, uni) VALUES (:a, :b, :c)").bindparams(a=new_dept, b='None', c=uni)
+		g.conn.execute(insert_query)
+	if(course_id != '' and notPresent(course_id, courses_taking)):
+		#insert into takes
+		insert_query = text("INSERT into takes (course_id, uni, grade) VALUES (:a, :b, :c)").bindparams(a=course_id, b=uni, c='')
+		g.conn.execute(insert_query)
+	elif(course_id != '' and not notPresent(course_id, courses_taking)):
+		#delete from takes
+		delete_query = text("DELETE FROM takes Where uni = :a and course_id = :b").bindparams(a=uni, b=course_id)
+		g.conn.execute(delete_query)
+	if(credits != '' and isValidNum(credits)):
+		credits_att += abs(float(credits))
+		credits_ern += abs(float(credits))
+		update_query = text("UPDATE Student set credits_earned = :a Where uni = :b").bindparams(a=credits_ern,b=uni)
+		g.conn.execute(update_query)
+		update_query = text("UPDATE Student set credits_attempted = :a Where uni = :b").bindparams(a=credits_att,b=uni)
+		g.conn.execute(update_query)
+	if(willTransfer == 'Yes' or willTransfer == 'yes'):
+		#for every (course, grade) pair in takes
+		for course in courses_taking:
+			#find the title of the course based off course_id
+			select_query = text("SELECT course_title From Course Where course_id = :cid").bindparams(cid=course[0])
+			cursor = g.conn.execute(select_query)
+			for entry in cursor:
+				#if the title is not present in courses_completed
+				if(notPresent(entry[0], courses_complete) and course[1] != ''):
+					courses_complete.append((entry[0], course[1]))
+					delete_query = text("DELETE FROM takes Where uni = :a and course_id = :b").bindparams(a=uni,b=course[0])
+					g.conn.execute(delete_query)
+				elif(not notPresent(entry[0], courses_complete)):
+					delete_query = text("DELETE FROM takes Where uni = :a and course_id = :b").bindparams(a=uni,b=course[0])
+					g.conn.execute(delete_query)
+			cursor.close()
+		update_query = text("UPDATE Student set course_record = :a Where uni = :b").bindparams(a=courses_complete,b=uni)
+		g.conn.execute(update_query)
+
+	g.conn.commit()
+	session['textbox'] = uni
+	return redirect('/student')
+
+def notPresent(val, list_to_search):
+	for pair in list_to_search:
+		if(val == pair[0]):
+			return False
+	return True
+
+def isValidNum(c):
+	try: 
+		float(c)
+	except ValueError:
+		return False
+	return True
 
 @app.route('/advisor', methods=['POST', 'GET'])
 def advisor():
