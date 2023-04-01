@@ -1,5 +1,13 @@
-body {
-	background-color: rgb(66, 115, 153);
-	color:  black;
-	font-family:  "Montserrat", sans-serif;
+/* body{
+	background-color: gray;
+	text-align: center;
+} */
+
+
+
+title {
+	font-style: italic;
+	size: 30px;
+	color: #5a86b8;
+
 }
