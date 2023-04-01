@@ -57,8 +57,8 @@ def index():
 @app.route('/student', methods=['POST', 'GET'])
 def student():
 	uni = session.pop('textbox', None)
-	query = text("SELECT * From Person p, Student s, takes t, \"advised by\" a, \"belongs to\" b Where p.uni = :a and t.uni = :a and b.uni = :a and a.uni_s = :a and s.uni = :a")
-	query = query.bindparams(a=uni)
+	query = text("SELECT * From Person p FULL JOIN Student s on p.uni = s.uni FULL JOIN takes on p.uni=takes.uni FULL JOIN \"advised by\" a on p.uni = a.uni_s FULL JOIN \"belongs to\" b on p.uni = b.uni Where p.uni = :user_uni")
+	query = query.bindparams(user_uni=uni)
 	cursor = g.conn.execute(query)
 	names = []
 	for result in cursor:

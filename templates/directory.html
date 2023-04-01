@@ -1,11 +1,29 @@
-hello, directory!
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Person Directory</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <div>
+    <form method="POST" action="search_db">
+        <p>Search for a Person in the Directory (search by their name or uni): <input type="text" name="name"> <input type="submit" value="Search"></p>
+        </form>
+        {% for n in data %}
+        <div>
+            <h3>{{n[1]}} ({{n[0]}})</h3>
+            <h4>Contact Information</h4>
+            <ul>
+                <h5>Email: {{n[2]}}</h5>
+                <h5>Phone Number: {{n[3]}}</h5>
+                <h5>Living Address: {{n[4]}}</h5>
+            </ul>
+        </div>
+        <br>
+        {% endfor %}
+    </div>
+    <div>
+        <p><a href="homepage">Go to homepage</a></p>
+    </div>
+</body>
 
-<form method="POST" action="search_db">
-    <p>Search for a Person in the Directory (search by their name or uni): <input type="text" name="name"> <input type="submit" value="Search"></p>
-    </form>
-
-    {% for n in data %}
-	<div>{{n}}</div>
-	{% endfor %}
-    
-<p><a href="homepage">Go to homepage</a></p>
