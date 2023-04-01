@@ -58,7 +58,6 @@ def index():
 
 @app.route('/student', methods=['POST', 'GET'])
 def student():
-    session['webpage'] = '/student'
     uni = session.pop('textbox', None)
     query = text("SELECT * From Person p FULL JOIN Student s on p.uni = s.uni FULL JOIN takes on p.uni=takes.uni FULL JOIN \"advised by\" a on p.uni = a.uni_s FULL JOIN \"belongs to\" b on p.uni = b.uni Where p.uni = :user_uni")
     query = query.bindparams(user_uni=uni)
@@ -200,16 +199,12 @@ def update_student():
         g.conn.commit()
     except BaseException:
         print("Error has occurred, there is a potential error with the SQL query")
-        return redirect('/sql_error_page')
     finally:
-        time.sleep(5)
+        time.sleep(2)
         session['textbox'] = uni
         return redirect('/student')
 
 
-@app.route('/sql_error_page', methods=['POST', 'GET'])
-def sql_error_page():
-    return render_template("sql_error_page.html")
 
 
 def notPresent(val, list_to_search):
@@ -229,7 +224,6 @@ def isValidNum(c):
 
 @app.route('/advisor', methods=['POST', 'GET'])
 def advisor():
-    session['webpage'] = '/advisor'
     uni = session.pop('textbox', None)
     update_advisees(uni)
     query = text("SELECT * From Person p, Employee e, Advisor a, \"belongs to\" b Where p.uni = :user_uni and e.uni = :user_uni and a.uni = :user_uni and b.uni = :user_uni").bindparams(user_uni=uni)
@@ -321,16 +315,14 @@ def update_advisor():
         g.conn.commit()
     except BaseException:
         print("Error has occurred, there is a potential error with the SQL query")
-        return redirect('/sql_error_page')
     finally:
-        time.sleep(5)
+        time.sleep(2)
         session['textbox'] = uni
         return redirect('/advisor')
 
 
 @app.route('/instructor', methods=['POST', 'GET'])
 def instructor():
-    session['webpage'] = '/instructor'
     uni = session.pop('textbox', None)
     query = text("SELECT * From Person p, Employee e, Instructor i, \"belongs to\" b Where p.uni = :user_uni and e.uni = :user_uni and i.uni = :user_uni and b.uni = :user_uni").bindparams(user_uni=uni)
     cursor = g.conn.execute(query)
@@ -411,9 +403,8 @@ def update_instructor():
         g.conn.commit()
     except BaseException:
         print("Error has occurred, there is a potential error with the SQL query")
-        return redirect('/sql_error_page')
     finally:
-        time.sleep(5)
+        time.sleep(2)
         session['textbox'] = uni
         return redirect('/instructor')
 
@@ -536,7 +527,6 @@ All functionality relating to the Admin
 '''
 @app.route('/admin', methods=['POST', 'GET'])
 def admin():
-    session['webpage'] = '/admin'
     return render_template("admin.html")
 
 
@@ -655,9 +645,8 @@ def enroll_student():
         g.conn.commit()
     except BaseException:
         print("Error has occurred, there is a potential error with the SQL query")
-        return redirect('/sql_error_page')
     finally:
-        time.sleep(5)
+        time.sleep(2)
         return redirect('/admin_enroll')
 
 
@@ -697,9 +686,8 @@ def employ_instructor():
         g.conn.commit()
     except BaseException:
         print("Error has occurred, there is a potential error with the SQL query")
-        return redirect('/sql_error_page')
     finally:
-        time.sleep(5)
+        time.sleep(2)
         return redirect('/admin_enroll')
 
 
@@ -739,9 +727,8 @@ def employ_advisor():
         g.conn.commit()
     except BaseException:
         print("Error has occurred, there is a potential error with the SQL query")
-        return redirect('/sql_error_page')
     finally:
-        time.sleep(5)
+        time.sleep(2)
         return redirect('/admin_enroll')
 
 
@@ -772,9 +759,8 @@ def add_dept_to_db():
         g.conn.commit()
     except BaseException:
         print("Error has occurred, there is a potential error with the SQL query")
-        return redirect('/sql_error_page')
     finally:
-        time.sleep(5)
+        time.sleep(2)
         return redirect('/admin_dept')
 
 
@@ -792,9 +778,8 @@ def add_building_to_db():
         g.conn.commit()
     except BaseException:
         print("Error has occurred, there is a potential error with the SQL query")
-        return redirect('/sql_error_page')
     finally:
-        time.sleep(5)
+        time.sleep(2)
         return redirect('/admin_construction')
 
 
@@ -823,9 +808,8 @@ def add_course_to_db():
         g.conn.commit()
     except BaseException:
         print("Error has occurred, there is a potential error with the SQL query")
-        return redirect('/sql_error_page')
     finally:
-        time.sleep(5)
+        time.sleep(2)
         return redirect('/admin_catalog')
 
 
