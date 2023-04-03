@@ -155,7 +155,7 @@ def update_student():
             insert_query = text("INSERT INTO \"belongs to\" (dept_id, course_id, uni) VALUES (:a, :b, :c)").bindparams(
                 a=new_dept, b='None', c=uni)
             g.conn.execute(insert_query)
-        if (course_id != '' and notPresent(course_id, courses_taking)):
+        if (course_id != '' and notPresent(course_id, courses_taking) and notCompleted(course_id, courses_complete)):
             # insert into takes
             insert_query = text("INSERT into takes (course_id, uni, grade) VALUES (:a, :b, :c)").bindparams(
                 a=course_id, b=uni, c='')
@@ -209,7 +209,17 @@ def update_student():
         return redirect('/student')
 
 
-
+def notCompleted(val, list_to_search):
+    select_query = text(
+                    "SELECT course_title From Course Where course_id = :cid").bindparams(cid=val)
+    cursor = g.conn.execute(select_query)
+    for entry in cursor:
+        for arrPair in list_to_search:
+            if(entry[0] in arrPair):
+                cursor.close()
+                return False
+    cursor.close()
+    return True
 
 def notPresent(val, list_to_search):
     for pair in list_to_search:
