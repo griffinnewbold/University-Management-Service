@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Grade Submission Form</title>
+        <link rel="icon" href="favicon.ico" type="image/x-icon">
+    </head>
+    <body>
+        <div>
+            <p>Here you will Assign Grades for Students in Your Courses</p>
+        </div>
+        <div>
+            {% if data|length >= 1 %}
+                <form action="process_grades" method="post">
+                    {% for result in data %}
+                    <label for="{{ result['student_uni']}}">{{ result['student_uni']}}: </label>
+                    <input type="text" placeholder="{{ result['current_grade']}}" name="{{ result['student_uni']}}" id="{{ result['student_uni']}}"><br>
+                    {% endfor %}
+                    <br>
+                    <input type="submit" value="Submit Grades">
+                </form>
+            {% endif %}
+        </div>
+        <div>
+            <p><a href="instructor">Return to Dashboard</a></p>
+        </div>
+    </body>
+</html>

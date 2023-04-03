@@ -135,6 +135,7 @@ def course_suggestion(uni, courses_taking, courses_taken, dept_id):
 
 @app.route('/update_student', methods=['POST', 'GET'])
 def update_student():
+    exceptionRaised = False
     uni = session.pop('textbox', None)
     courses_complete = session.pop('courses_complete', None)
     courses_taking = session.pop('courses_taking', None)
@@ -184,7 +185,7 @@ def update_student():
                     # if the title is not present in courses_completed
                     if (notPresent(entry[0],
                                    courses_complete) and course[1] != ''):
-                        courses_complete.append((entry[0], course[1]))
+                        courses_complete.append([entry[0], course[1]])
                         delete_query = text("DELETE FROM takes Where uni = :a and course_id = :b").bindparams(
                             a=uni, b=course[0])
                         g.conn.execute(delete_query)
@@ -197,10 +198,13 @@ def update_student():
                 a=courses_complete, b=uni)
             g.conn.execute(update_query)
         g.conn.commit()
-    except BaseException:
-        print("Error has occurred, there is a potential error with the SQL query")
+    except BaseException as e:
+        print("Error has occurred, there is a potential error with the SQL query \nHere is more information:\n")
+        print(str(e))
+        exceptionRaised = True
     finally:
-        time.sleep(2)
+        if(exceptionRaised):
+            time.sleep(2)
         session['textbox'] = uni
         return redirect('/student')
 
@@ -281,6 +285,7 @@ def update_advisees(uni):
 
 @app.route('/update_advisor', methods=['POST', 'GET'])
 def update_advisor():
+    exceptionRaised = False
     uni = session.pop('textbox', None)
     times = session.pop('time', None)
     avail = session.pop('avail', None)
@@ -313,10 +318,13 @@ def update_advisor():
                 a=new_dept, b='None', c=uni)
                 g.conn.execute(insert_query)
         g.conn.commit()
-    except BaseException:
-        print("Error has occurred, there is a potential error with the SQL query")
+    except BaseException as e:
+        print("Error has occurred, there is a potential error with the SQL query \nHere is more information:\n")
+        print(str(e))
+        exceptionRaised = True
     finally:
-        time.sleep(2)
+        if(exceptionRaised):
+            time.sleep(2)
         session['textbox'] = uni
         return redirect('/advisor')
 
@@ -361,8 +369,43 @@ def instructor():
     return render_template("instructor.html", **context)
 
 
+@app.route('/submit_grades', methods=['POST', 'GET'])
+def submit_grades():
+    uni = session.pop('textbox', None)
+    select_query = text(
+        "SELECT * From teaches te JOIN takes ta on te.course_id = ta.course_id WHERE te.uni = :a").bindparams(a=uni)
+    cursor = g.conn.execute(select_query)
+    students = []
+    for entry in cursor:
+        students.append(
+            dict(
+                course_id = entry[0],
+                student_uni = entry[3],
+                current_grade = entry[4]))
+    cursor.close()
+    context = dict(data=students)
+    session['textbox'] = uni
+    session['current_enrollment'] = students
+    return render_template("instructor_assign_grades.html", **context)
+
+@app.route('/process_grades', methods=['POST', 'GET'])
+def process_grades():
+    course_data = session.pop('current_enrollment', None)
+    for key, value in request.form.items():
+        try:
+            update_query = text(
+                "UPDATE takes SET grade = :a WHERE uni = :b and course_id = :c").bindparams(a=value, b=key, c=course_data[0]['course_id'])
+            g.conn.execute(update_query)
+            g.conn.commit()
+        except BaseException as e:
+            print("Error has occurred, there is a potential error with the SQL query \nHere is more information:\n")
+            print(str(e))
+    return redirect('/submit_grades')
+
+
 @app.route('/update_instructor', methods=['POST', 'GET'])
 def update_instructor():
+    exceptionRaised = False
     uni = session.pop('textbox', None)
     courses_taught = session.pop('courses_taught', None)
     courses_teaching = session.pop('courses_teaching', None)
@@ -401,10 +444,13 @@ def update_instructor():
                 "UPDATE Instructor SET papers_published = :a WHERE uni = :c").bindparams(a=papers, c=uni)
                 g.conn.execute(update_query)
         g.conn.commit()
-    except BaseException:
-        print("Error has occurred, there is a potential error with the SQL query")
+    except BaseException as e:
+        print("Error has occurred, there is a potential error with the SQL query \nHere is more information:\n")
+        print(str(e))
+        exceptionRaised = True
     finally:
-        time.sleep(2)
+        if(exceptionRaised):
+            time.sleep(2)
         session['textbox'] = uni
         return redirect('/instructor')
 
@@ -627,6 +673,7 @@ def enroll_student():
     email = session.pop('email', None)
     phone = session.pop('phone', None)
     address = session.pop('address', None)
+    exceptionRaised = False
 
     p_query = person_query.bindparams(
         a=uni, b=name, c=email, d=phone, e=address)
@@ -643,10 +690,13 @@ def enroll_student():
         g.conn.execute(student_query)
         g.conn.execute(assign_advisor)
         g.conn.commit()
-    except BaseException:
-        print("Error has occurred, there is a potential error with the SQL query")
+    except BaseException as e:
+        print("Error has occurred, there is a potential error with the SQL query \nHere is more information:\n")
+        print(str(e))
+        exceptionRaised = True
     finally:
-        time.sleep(2)
+        if(exceptionRaised):
+            time.sleep(2)
         return redirect('/admin_enroll')
 
 
@@ -657,6 +707,7 @@ def employ_instructor():
     email = session.pop('email', None)
     phone = session.pop('phone', None)
     address = session.pop('address', None)
+    exceptionRaised = False
 
     year_of_exp = request.form['textbox1']
     salary = int(request.form['textbox2'])
@@ -684,10 +735,13 @@ def employ_instructor():
         g.conn.execute(instructor_query)
         g.conn.execute(belongs_query)
         g.conn.commit()
-    except BaseException:
-        print("Error has occurred, there is a potential error with the SQL query")
+    except BaseException as e:
+        print("Error has occurred, there is a potential error with the SQL query \nHere is more information:\n")
+        print(str(e))
+        exceptionRaised = True
     finally:
-        time.sleep(2)
+        if(exceptionRaised):
+            time.sleep(2)
         return redirect('/admin_enroll')
 
 
@@ -698,6 +752,8 @@ def employ_advisor():
     email = session.pop('email', None)
     phone = session.pop('phone', None)
     address = session.pop('address', None)
+    exceptionRaised = False
+
 
     year_of_exp = request.form['textbox1']
     salary = int(request.form['textbox2'])
@@ -725,10 +781,13 @@ def employ_advisor():
         g.conn.execute(advisor_query)
         g.conn.execute(belongs_query)
         g.conn.commit()
-    except BaseException:
-        print("Error has occurred, there is a potential error with the SQL query")
+    except BaseException as e:
+        print("Error has occurred, there is a potential error with the SQL query \nHere is more information:\n")
+        print(str(e))
+        exceptionRaised = True
     finally:
-        time.sleep(2)
+        if(exceptionRaised):
+            time.sleep(2)
         return redirect('/admin_enroll')
 
 
@@ -749,6 +808,7 @@ def admin_employ_instructor():
 
 @app.route('/add_dept_to_db', methods=['GET', 'POST'])
 def add_dept_to_db():
+    exceptionRaised = False
     dept_id = request.form['textbox1']
     dept_title = request.form['textbox2']
     insert_query = text(
@@ -757,10 +817,13 @@ def add_dept_to_db():
     try:
         g.conn.execute(insert_query)
         g.conn.commit()
-    except BaseException:
-        print("Error has occurred, there is a potential error with the SQL query")
+    except BaseException as e:
+        print("Error has occurred, there is a potential error with the SQL query \nHere is more information:\n")
+        print(str(e))
+        exceptionRaised = True
     finally:
-        time.sleep(2)
+        if(exceptionRaised):
+            time.sleep(2)
         return redirect('/admin_dept')
 
 
@@ -776,21 +839,26 @@ def add_building_to_db():
     try:
         g.conn.execute(insert_query)
         g.conn.commit()
-    except BaseException:
-        print("Error has occurred, there is a potential error with the SQL query")
+    except BaseException as e:
+        print("Error has occurred, there is a potential error with the SQL query \nHere is more information:\n")
+        print(str(e))
+        exceptionRaised = True
     finally:
-        time.sleep(2)
+        if(exceptionRaised):
+            time.sleep(2)
         return redirect('/admin_construction')
 
 
 @app.route('/add_course_to_db', methods=['GET', 'POST'])
 def add_course_to_db():
+    exceptionRaised = False
     course_id = request.form['textbox1']
     course_title = request.form['textbox2']
     course_capacity = int(request.form['textbox3'])
     course_dept = request.form['textbox4']
     course_time = request.form['textbox5']
     course_building = request.form['textbox6']
+
     try:
         insert_query = "INSERT INTO Course (course_id, course_title, time_slot, course_capacity) VALUES (:a, :b, :c, :d)"
         insert_query = text(insert_query).bindparams(
@@ -806,24 +874,14 @@ def add_course_to_db():
                 a=course_title, b=course_dept)
         g.conn.execute(update_query)
         g.conn.commit()
-    except BaseException:
-        print("Error has occurred, there is a potential error with the SQL query")
+    except BaseException as e:
+        print("Error has occurred, there is a potential error with the SQL query \nHere is more information:\n")
+        print(str(e))
+        exceptionRaised = True
     finally:
-        time.sleep(2)
+        if(exceptionRaised):
+            time.sleep(2)
         return redirect('/admin_catalog')
-
-
-def delete_course():
-    delete_query = text(
-        "DELETE FROM \"located in\" Where course_id = \'2402\'")
-    g.conn.execute(delete_query)
-    delete_query = text(
-        "DELETE FROM \"belongs to\" Where course_id = \'2402\'")
-    g.conn.execute(delete_query)
-    delete_query = text("DELETE FROM Course Where course_id = \'2402\'")
-    g.conn.execute(delete_query)
-    g.conn.commit()
-
 
 if __name__ == "__main__":
     import click
