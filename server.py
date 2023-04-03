@@ -506,7 +506,7 @@ def update_instructor():
 def directory():
     try:
         return render_template("directory.html")
-    except:
+    except BaseException as e:
         print("Error has occurred, there is a potential error with the SQL query \nHere is more information:\n")
         print(str(e))
         return render_template("index.html")
