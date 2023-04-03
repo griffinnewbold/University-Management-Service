@@ -58,49 +58,53 @@ def index():
 
 @app.route('/student', methods=['POST', 'GET'])
 def student():
-    uni = session.pop('textbox', None)
-    query = text("SELECT * From Person p FULL JOIN Student s on p.uni = s.uni FULL JOIN takes on p.uni=takes.uni FULL JOIN \"advised by\" a on p.uni = a.uni_s FULL JOIN \"belongs to\" b on p.uni = b.uni Where p.uni = :user_uni")
-    query = query.bindparams(user_uni=uni)
-    cursor = g.conn.execute(query)
-    names = []
-    for result in cursor:
-        if (result[0] != 'None'):
-            names.append(dict(uni=result[0], name=result[1],
-                              email=result[2], phone=result[3], addr=result[4],
-                              credits_att=result[5], credits_ern=result[6],
-                              grad_date=result[7], courses_taken=result[8],
-                              advisor=result[14], department=result[15]))
-    cursor.close()
+    try:
+        uni = session.pop('textbox', None)
+        query = text("SELECT * From Person p FULL JOIN Student s on p.uni = s.uni FULL JOIN takes on p.uni=takes.uni FULL JOIN \"advised by\" a on p.uni = a.uni_s FULL JOIN \"belongs to\" b on p.uni = b.uni Where p.uni = :user_uni")
+        query = query.bindparams(user_uni=uni)
+        cursor = g.conn.execute(query)
+        names = []
+        for result in cursor:
+            if (result[0] != 'None'):
+                names.append(dict(uni=result[0], name=result[1],
+                                email=result[2], phone=result[3], addr=result[4],
+                                credits_att=result[5], credits_ern=result[6],
+                                grad_date=result[7], courses_taken=result[8],
+                                advisor=result[14], department=result[15]))
+        cursor.close()
 
-    query = text("SELECT * FROM takes Where uni = :uni").bindparams(uni=uni)
-    cursor = g.conn.execute(query)
-    courses_taking = []
-    for res in cursor:
-        courses_taking.append((res[0], res[2]))
-    cursor.close()
-    names[0]['courses_taking'] = courses_taking
-    course_sugs = course_suggestion(
-        uni,
-        courses_taking,
-        names[0]['courses_taken'],
-        names[0]['department'])
-    if (len(course_sugs) > 0):
-        names[0]['course_suggestion'] = course_sugs
-    else:
-        response = []
-        response.append("We do not have courses to recommend at this time")
-        names[0]['course_suggestion'] = response
-    filtered_data = []
-    filtered_data.append(names[0])
-    names = filtered_data
+        query = text("SELECT * FROM takes Where uni = :uni").bindparams(uni=uni)
+        cursor = g.conn.execute(query)
+        courses_taking = []
+        for res in cursor:
+            courses_taking.append((res[0], res[2]))
+        cursor.close()
+        names[0]['courses_taking'] = courses_taking
+        course_sugs = course_suggestion(
+            uni,
+            courses_taking,
+            names[0]['courses_taken'],
+            names[0]['department'])
+        if (len(course_sugs) > 0):
+            names[0]['course_suggestion'] = course_sugs
+        else:
+            response = []
+            response.append("We do not have courses to recommend at this time")
+            names[0]['course_suggestion'] = response
+        filtered_data = []
+        filtered_data.append(names[0])
+        names = filtered_data
 
-    context = dict(data=names)
-    session['textbox'] = uni
-    session['courses_complete'] = names[0]['courses_taken']
-    session['courses_taking'] = names[0]['courses_taking']
-    session['credits_att'] = names[0]['credits_att']
-    session['credits_ern'] = names[0]['credits_ern']
-    return render_template("student.html", **context)
+        context = dict(data=names)
+        session['textbox'] = uni
+        session['courses_complete'] = names[0]['courses_taken']
+        session['courses_taking'] = names[0]['courses_taking']
+        session['credits_att'] = names[0]['credits_att']
+        session['credits_ern'] = names[0]['credits_ern']
+        return render_template("student.html", **context)
+    except BaseException as e:
+        time.sleep(2)
+        return render_template("student.html")
 
 
 def course_suggestion(uni, courses_taking, courses_taken, dept_id):
@@ -168,11 +172,11 @@ def update_student():
         if (credits != '' and isValidNum(credits)):
             credits_att += abs(float(credits))
             credits_ern += abs(float(credits))
-            update_query = text("UPDATE Student set credits_earned = :a Where uni = :b").bindparams(
-                a=credits_ern, b=uni)
-            g.conn.execute(update_query)
             update_query = text("UPDATE Student set credits_attempted = :a Where uni = :b").bindparams(
                 a=credits_att, b=uni)
+            g.conn.execute(update_query)
+            update_query = text("UPDATE Student set credits_earned = :a Where uni = :b").bindparams(
+                a=credits_ern, b=uni)
             g.conn.execute(update_query)
         if (willTransfer == 'Yes' or willTransfer == 'yes'):
             # for every (course, grade) pair in takes
@@ -238,34 +242,38 @@ def isValidNum(c):
 
 @app.route('/advisor', methods=['POST', 'GET'])
 def advisor():
-    uni = session.pop('textbox', None)
-    update_advisees(uni)
-    query = text("SELECT * From Person p, Employee e, Advisor a, \"belongs to\" b Where p.uni = :user_uni and e.uni = :user_uni and a.uni = :user_uni and b.uni = :user_uni").bindparams(user_uni=uni)
-    cursor = g.conn.execute(query)
-    names = []
-    for result in cursor:
-        if (result[0] != 'None'):
-            names.append(
-                dict(
-                    uni=result[0],
-                    name=result[1],
-                    email=result[2],
-                    phone=result[3],
-                    addr=result[4],
-                    years_of_exp=result[5],
-                    salary=result[6],
-                    alma_mater=result[7],
-                    student_advisees=result[9],
-                    isAvailable=result[10],
-                    time_slots=result[11],
-                    dept_code=result[13]))
-    cursor.close()
-    context = dict(data=names)
-    session['textbox'] = uni
-    session['dept'] = names[0]['dept_code']
-    session['time'] = names[0]['time_slots']
-    session['avail'] = names[0]['isAvailable']
-    return render_template("advisor.html", **context)
+    try:
+        uni = session.pop('textbox', None)
+        update_advisees(uni)
+        query = text("SELECT * From Person p, Employee e, Advisor a, \"belongs to\" b Where p.uni = :user_uni and e.uni = :user_uni and a.uni = :user_uni and b.uni = :user_uni").bindparams(user_uni=uni)
+        cursor = g.conn.execute(query)
+        names = []
+        for result in cursor:
+            if (result[0] != 'None'):
+                names.append(
+                    dict(
+                        uni=result[0],
+                        name=result[1],
+                        email=result[2],
+                        phone=result[3],
+                        addr=result[4],
+                        years_of_exp=result[5],
+                        salary=result[6],
+                        alma_mater=result[7],
+                        student_advisees=result[9],
+                        isAvailable=result[10],
+                        time_slots=result[11],
+                        dept_code=result[13]))
+        cursor.close()
+        context = dict(data=names)
+        session['textbox'] = uni
+        session['dept'] = names[0]['dept_code']
+        session['time'] = names[0]['time_slots']
+        session['avail'] = names[0]['isAvailable']
+        return render_template("advisor.html", **context)
+    except BaseException as e:
+        time.sleep(2)
+        return render_template("advisor.html")
 
 
 def update_advisees(uni):
@@ -341,43 +349,46 @@ def update_advisor():
 
 @app.route('/instructor', methods=['POST', 'GET'])
 def instructor():
-    uni = session.pop('textbox', None)
-    query = text("SELECT * From Person p, Employee e, Instructor i, \"belongs to\" b Where p.uni = :user_uni and e.uni = :user_uni and i.uni = :user_uni and b.uni = :user_uni").bindparams(user_uni=uni)
-    cursor = g.conn.execute(query)
-    names = []
-    for result in cursor:
-        if (result[0] != 'None'):
-            names.append(
-                dict(
-                    uni=result[0],
-                    name=result[1],
-                    email=result[2],
-                    phone=result[3],
-                    addr=result[4],
-                    years_of_exp=result[5],
-                    salary=result[6],
-                    alma_mater=result[7],
-                    courses_taught=result[9],
-                    papers_written=result[10],
-                    research_exp=result[12],
-                    dept_code=result[13],
-                    courses_teaching=list()))
-    cursor.close()
-    query = text(
-        "SELECT * From Course c, teaches t WHERE t.course_id = c.course_id and t.uni = :user_uni").bindparams(user_uni=uni)
-    cursor = g.conn.execute(query)
-    for result in cursor:
-        names[0]['courses_teaching'].append(result[1])
-    cursor.close()
-    context = dict(data=names)
+    try:
+        uni = session.pop('textbox', None)
+        query = text("SELECT * From Person p, Employee e, Instructor i, \"belongs to\" b Where p.uni = :user_uni and e.uni = :user_uni and i.uni = :user_uni and b.uni = :user_uni").bindparams(user_uni=uni)
+        cursor = g.conn.execute(query)
+        names = []
+        for result in cursor:
+            if (result[0] != 'None'):
+                names.append(
+                    dict(
+                        uni=result[0],
+                        name=result[1],
+                        email=result[2],
+                        phone=result[3],
+                        addr=result[4],
+                        years_of_exp=result[5],
+                        salary=result[6],
+                        alma_mater=result[7],
+                        courses_taught=result[9],
+                        papers_written=result[10],
+                        research_exp=result[12],
+                        dept_code=result[13],
+                        courses_teaching=list()))
+        cursor.close()
+        query = text(
+            "SELECT * From Course c, teaches t WHERE t.course_id = c.course_id and t.uni = :user_uni").bindparams(user_uni=uni)
+        cursor = g.conn.execute(query)
+        for result in cursor:
+            names[0]['courses_teaching'].append(result[1])
+        cursor.close()
+        context = dict(data=names)
 
-    session['textbox'] = uni
-    session['courses_taught'] = names[0]['courses_taught']
-    session['courses_teaching'] = names[0]['courses_teaching']
-    session['papers'] = names[0]['papers_written']
+        session['textbox'] = uni
+        session['courses_taught'] = names[0]['courses_taught']
+        session['courses_teaching'] = names[0]['courses_teaching']
+        session['papers'] = names[0]['papers_written']
 
-    return render_template("instructor.html", **context)
-
+        return render_template("instructor.html", **context)
+    except BaseException as e:
+        time.sleep(2)
+        return render_template("instructor.html")
 
 @app.route('/submit_grades', methods=['POST', 'GET'])
 def submit_grades():
@@ -583,11 +594,18 @@ All functionality relating to the Admin
 '''
 @app.route('/admin', methods=['POST', 'GET'])
 def admin():
-    return render_template("admin.html")
-
+    if(session.pop('textbox', None) == "admin"):
+        session['textbox'] = "admin"
+        return render_template("admin.html")
+    context = dict(data="Invalid Credentials, Please Try Again!")
+    return render_template("index.html", **context)
 
 @app.route('/admin_enroll', methods=['POST', 'GET'])
 def admin_enroll():
+    if(session.pop('textbox', None) != "admin"):
+        context = dict(data="Invalid Credentials, Please Try Again!")
+        return render_template("index.html", **context)
+    session['textbox'] = "admin"
     select_query = "SELECT * FROM Person"
     cursor = g.conn.execute(text(select_query))
     res = []
@@ -607,6 +625,10 @@ def admin_enroll():
 
 @app.route('/admin_catalog', methods=['POST', 'GET'])
 def admin_catalog():
+    if(session.pop('textbox', None) != "admin"):
+        context = dict(data="Invalid Credentials, Please Try Again!")
+        return render_template("index.html", **context)
+    session['textbox'] = "admin"
     select_query = "SELECT * FROM Course"
     cursor = g.conn.execute(text(select_query))
     res = []
@@ -625,6 +647,10 @@ def admin_catalog():
 
 @app.route('/admin_dept', methods=['POST', 'GET'])
 def admin_dept():
+    if(session.pop('textbox', None) != "admin"):
+        context = dict(data="Invalid Credentials, Please Try Again!")
+        return render_template("index.html", **context)
+    session['textbox'] = "admin"
     select_query = text("SELECT * FROM Department")
     cursor = g.conn.execute(select_query)
     res = []
@@ -641,6 +667,10 @@ def admin_dept():
 
 @app.route('/admin_construction', methods=['POST', 'GET'])
 def admin_construction():
+    if(session.pop('textbox', None) != "admin"):
+        context = dict(data="Invalid Credentials, Please Try Again!")
+        return render_template("index.html", **context)
+    session['textbox'] = "admin"
     select_query = text("SELECT * FROM Building")
     cursor = g.conn.execute(select_query)
     res = []
@@ -653,6 +683,9 @@ def admin_construction():
 
 @app.route('/begin_addition_process', methods=['GET', 'POST'])
 def begin_addition_process():
+    if(session.pop('textbox', None) != "admin"):
+        context = dict(data="Invalid Credentials, Please Try Again!")
+        return render_template("index.html", **context)
     uni = request.form['textbox1']
     name = request.form['textbox2']
     email = request.form['textbox3']
@@ -663,6 +696,7 @@ def begin_addition_process():
     session['email'] = email
     session['phone'] = phone
     session['address'] = address
+    session['textbox'] = "admin"
 
     if (uni[0] == 's'):
         return redirect('/admin_enroll_student')
@@ -676,6 +710,7 @@ def begin_addition_process():
 
 @app.route('/enroll_student', methods=['GET', 'POST'])
 def enroll_student():
+    session['textbox'] = "admin"
     grad_date = request.form['textbox1']
     advisor_uni = request.form['textbox2']
     uni = session.pop('uni', None)
@@ -712,6 +747,7 @@ def enroll_student():
 
 @app.route('/employ_instructor', methods=['GET', 'POST'])
 def employ_instructor():
+    session['textbox'] = "admin"
     uni = session.pop('uni', None)
     name = session.pop('name', None)
     email = session.pop('email', None)
@@ -757,6 +793,7 @@ def employ_instructor():
 
 @app.route('/employ_advisor', methods=['GET', 'POST'])
 def employ_advisor():
+    session['textbox'] = "admin"
     uni = session.pop('uni', None)
     name = session.pop('name', None)
     email = session.pop('email', None)
@@ -803,21 +840,37 @@ def employ_advisor():
 
 @app.route('/admin_enroll_student', methods=['GET', 'POST'])
 def admin_enroll_student():
-    return render_template('admin_enroll_student.html')
+    if(session.pop('textbox', None) == "admin"):
+        session['textbox'] = "admin"
+        return render_template('admin_enroll_student.html')
+    context = dict(data="Invalid Credentials, Please Try Again!")
+    return render_template("index.html", **context)
+    
 
 
 @app.route('/admin_employ_advisor', methods=['GET', 'POST'])
 def admin_employ_advisor():
-    return render_template('admin_employ_advisor.html')
+    if(session.pop('textbox', None) == "admin"):
+        session['textbox'] = "admin"
+        return render_template('admin_employ_advisor.html')
+    context = dict(data="Invalid Credentials, Please Try Again!")
+    return render_template("index.html", **context)
+    
 
 
 @app.route('/admin_employ_instructor', methods=['GET', 'POST'])
 def admin_employ_instructor():
-    return render_template('admin_employ_instructor.html')
+    if(session.pop('textbox', None) == "admin"):
+        session['textbox'] = "admin"
+        return render_template('admin_employ_instructor.html')
+    context = dict(data="Invalid Credentials, Please Try Again!")
+    return render_template("index.html", **context)
+
 
 
 @app.route('/add_dept_to_db', methods=['GET', 'POST'])
 def add_dept_to_db():
+    session['textbox'] = "admin"
     exceptionRaised = False
     dept_id = request.form['textbox1']
     dept_title = request.form['textbox2']
@@ -839,6 +892,8 @@ def add_dept_to_db():
 
 @app.route('/add_building_to_db', methods=['GET', 'POST'])
 def add_building_to_db():
+    session['textbox'] = "admin"
+    exceptionRaised = False
     building_id = request.form['textbox1']
     address = request.form['textbox2']
     capacity = int(request.form['textbox3'])
@@ -861,6 +916,7 @@ def add_building_to_db():
 
 @app.route('/add_course_to_db', methods=['GET', 'POST'])
 def add_course_to_db():
+    session['textbox'] = "admin"
     exceptionRaised = False
     course_id = request.form['textbox1']
     course_title = request.form['textbox2']
