@@ -1,27 +1,26 @@
+<!DOCTYPE html>
 <html>
-  <style>
-    body{ 
-      font-size: 15pt;
-      font-family: arial;
-    }
-  </style>
-<head>
-    <title>Login to GSSOL</title>
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <link rel="stylesheet" type="text/css" href="css/style.css">
-    
-</head>
-
-<body>
-
-
-<form method="POST" action="/login">
-<p>Login to GSSOL: <input type="text" name="name"> <input type="submit" value="Login"></p>
-</form>
-<div>{{data}}</div>
-<p><a href="directory">Go to the directory page</a></p>
-</body>
-
-
+  <head>
+      <title>Login to GSSOL</title>
+      <link rel="icon" href="favicon.ico" type="image/x-icon">
+      <style>
+        body {
+          background-color: #c4c4c4; /* set the background color to light gray */
+        }
+      </style>
+  </head>
+  <body id="index_body">
+  <div id="index_login_div">
+    <form method="POST" action="/login">
+      <p id="index_title_p">Login to GSSOL:</p><input id = "index_button" type="text" name="name"> <input type="submit" value="Login" />
+    </form>
+  </div>
+  <div id="index_error_div">
+    {{data}}
+  </div>
+  <div id="index_page_change_div">
+    <p><a href="directory">Go to the directory page</a></p>
+  </div>
+  </body>
 </html>
 

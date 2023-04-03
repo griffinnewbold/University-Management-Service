@@ -3,8 +3,16 @@
 <head>
     <title>Person Directory</title>
     <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <style>
+        body {
+          background-color: #c4c4c4; /* set the background color to light gray */
+        }
+    </style>
 </head>
 <body>
+    <div>
+        <p><a href="homepage">Go to homepage</a></p>
+    </div>
     <div>
     <form method="POST" action="search_db">
         <p>Search for a Person in the Directory (search by their name or uni): <input type="text" name="name"> <input type="submit" value="Search"></p>
@@ -22,9 +30,7 @@
         <br>
         {% endfor %}
     </div>
-    <div>
-        <p><a href="homepage">Go to homepage</a></p>
-    </div>
+
 </body>
 </html>
 
