@@ -157,7 +157,7 @@ def update_student():
         willTransfer = request.form['textbox3']
         credits = request.form['textbox4']
 
-        if (new_dept != ''):
+        if (new_dept != '' and validDept(new_dept)):
             delete_query = text(
                 "DELETE FROM \"belongs to\" Where uni = :a").bindparams(a=uni)
             g.conn.execute(delete_query)
@@ -218,6 +218,21 @@ def update_student():
         session['textbox'] = uni
         return redirect('/student')
 
+def validDept(val):
+    try:
+        select_query = text(
+                        "SELECT dept_id From Department Where dept_id = :a").bindparams(a=val)
+        cursor = g.conn.execute(select_query)
+        for _ in cursor:
+            cursor.close()
+            return True
+        cursor.close()
+        return False
+    except BaseException as e:
+        print("Error has occurred, there is a potential error with the SQL query \nHere is more information:\n")
+        print(str(e))
+        return False
+        
 
 def notCompleted(val, list_to_search):
     try:
@@ -346,7 +361,7 @@ def update_advisor():
             update_query = text("UPDATE Advisor SET isavailable = :a, daily_appointments = :b WHERE uni = :c").bindparams(
                     a=avail, b=times, c=uni)
             g.conn.execute(update_query)
-            if (new_dept != ''):
+            if (new_dept != '' and validDept(new_dept)):
                     delete_query = text(
                     "DELETE FROM \"belongs to\" Where uni = :a").bindparams(a=uni)
                     g.conn.execute(delete_query)
@@ -478,7 +493,7 @@ def update_instructor():
                 insert_query = text("INSERT into teaches (course_id, uni) VALUES (:a, :b)").bindparams(
                 a=new_course_id, b=uni)
                 g.conn.execute(insert_query)
-        if (new_dept != ''):
+        if (new_dept != '' and validDept(new_dept)):
                 delete_query = text(
                 "DELETE FROM \"belongs to\" Where uni = :a").bindparams(a=uni)
                 g.conn.execute(delete_query)
