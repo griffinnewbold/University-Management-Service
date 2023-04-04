@@ -351,7 +351,9 @@ def update_advisor():
             times.remove(time_slot)
         elif (time_slot not in times and time_slot != ''):
             times.append(time_slot)
-
+        update_query = text("UPDATE Advisor SET daily_appointments = :b WHERE uni = :c").bindparams(
+                   b=times, c=uni)
+        g.conn.execute(update_query)
         switch_avail = request.form['textbox3']
         if (switch_avail == "Yes" or switch_avail == "yes"):
             if (avail == "True"):
@@ -361,15 +363,16 @@ def update_advisor():
             update_query = text("UPDATE Advisor SET isavailable = :a, daily_appointments = :b WHERE uni = :c").bindparams(
                     a=avail, b=times, c=uni)
             g.conn.execute(update_query)
-            if (new_dept != '' and validDept(new_dept)):
-                    delete_query = text(
-                    "DELETE FROM \"belongs to\" Where uni = :a").bindparams(a=uni)
-                    g.conn.execute(delete_query)
-                    g.conn.commit()
-                    insert_query = text("INSERT INTO \"belongs to\" (dept_id, course_id, uni) VALUES (:a, :b, :c)").bindparams(
+        if (new_dept != '' and validDept(new_dept)):
+                delete_query = text(
+                "DELETE FROM \"belongs to\" Where uni = :a").bindparams(a=uni)
+                g.conn.execute(delete_query)
+                g.conn.commit()
+                insert_query = text("INSERT INTO \"belongs to\" (dept_id, course_id, uni) VALUES (:a, :b, :c)").bindparams(
                     a=new_dept, b='None', c=uni)
-                    g.conn.execute(insert_query)
-            g.conn.commit()
+                g.conn.execute(insert_query)
+                g.conn.commit()
+        g.conn.commit()
     except BaseException as e:
         print("Error has occurred, there is a potential error with the SQL query \nHere is more information:\n")
         print(str(e))
@@ -600,8 +603,8 @@ def search_db():
         if (len(names) != 0):
             context = dict(data=names)
         else:
-            result = [
-                "There is no entry in our records relating to your search term, please check your search then try again"]
+            result = []
+            result.append("There is no entry in our records relating to your search term, please check your search then try again")
             context = dict(data=result)
         return render_template("directory.html", **context)
     except BaseException as e:

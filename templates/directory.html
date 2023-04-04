@@ -19,6 +19,9 @@
         </form>
         {% for n in data %}
         <div>
+            {% if n[0] == 'T' and n[1] == 'h' and n[2] == n[4] and n[3] == 'r' %}
+                {{n}}
+            {% else %}
             <h3>{{n[1]}} ({{n[0]}})</h3>
             <h4>Contact Information</h4>
             <ul>
@@ -26,6 +29,7 @@
                 <h5>Phone Number: {{n[3]}}</h5>
                 <h5>Living Address: {{n[4]}}</h5>
             </ul>
+            {% endif %} 
         </div>
         <br>
         {% endfor %}
