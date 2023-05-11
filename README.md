@@ -8,8 +8,6 @@ This README is to go along with the Project Part 3 Submission on Gradescope. The
 
 Part 1
 ------
-PostgreSQL Account Information: UNI DB is under: gcn2106 PW: 3276
-Website URL: http://34.148.242.21:8111/
 Web Interface Description in Connection to Part 1:
 
 Recall the description from the first part of the project: 
@@ -125,19 +123,6 @@ Add a Student
 Expected Graduation year: integer representing year, if a negative is entered the positive is added  
 Uni for Advisor: uni for advisor, database constraint check should handle issues with advisor uni
 All of this potential updating is surrounded by a try except block, if an error occurs, there will be a 2 second delay prior to the page updating and an error message is displayed to the terminal but not to the user.
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 admin_employ_instructor
 -----------------------
