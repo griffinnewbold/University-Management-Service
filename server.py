@@ -13,10 +13,10 @@ tmpl_dir = os.path.join(
 app = Flask(__name__, template_folder=tmpl_dir)
 app.secret_key = 'databaseproject'
 
-DATABASE_USERNAME = "gcn2106"
-DATABASE_PASSWRD = "3276"
+DATABASE_USERNAME = "outdated"
+DATABASE_PASSWRD = "outdated"
 # change to 34.28.53.86 if you used database 2 for part 2
-DATABASE_HOST = "34.148.107.47"
+DATABASE_HOST = "outdated"
 DATABASEURI = f"postgresql://{DATABASE_USERNAME}:{DATABASE_PASSWRD}@{DATABASE_HOST}/project1"
 person_query = text(
     "INSERT INTO Person (uni, name, email, phone_number, address) VALUES (:a, :b, :c, :d, :e)")
