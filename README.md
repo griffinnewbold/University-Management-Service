@@ -1,6 +1,6 @@
 COMS W4111 - Introduction to Databases Semester Project
 Team Members: Griffin Newbold (gcn2106) and Amanda Jenkins (alj2155)
-Application Tested on the Following: Edge, Chrome, and FireFox
+Application Tested on the Following: Edge, Chrome, and FireFox.
 
 Introduction
 ------------
